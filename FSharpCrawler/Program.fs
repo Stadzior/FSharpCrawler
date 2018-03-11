@@ -18,7 +18,13 @@ let images =
         x.TryGetAttribute("src").Value.Value(),
         x.TryGetAttribute("alt").Value.Value()
     )
-    
+
+let scripts =
+    results.Descendants ["script"]
+    |> Seq.map(fun x ->        
+        x.TryGetAttribute("src").Value.Value(),
+        x.TryGetAttribute("type").Value.Value()
+    )
 
 //let searchResults =
 //    links
@@ -34,5 +40,8 @@ let main argv =
 
     for image in images do         
         Console.WriteLine("Src: {0}\nAlt: {1}\n", fst image, snd image)
+
+    for script in scripts do         
+        Console.WriteLine("Src: {0}\nType: {1}\n", fst script, snd script)
     Console.ReadKey() |> ignore
     0 // return an integer exit code
