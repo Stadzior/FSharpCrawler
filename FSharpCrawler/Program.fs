@@ -51,11 +51,11 @@ let rec mainLoop() =
     
         let shouldWriteToConsole = Array.contains("-console")
         let shouldWriteToFile = Array.contains("-file")
-        let fileName = 
+        let filePath = 
             if shouldWriteToFile(lineSplitted) then
                 if shouldWriteToConsole(lineSplitted) then
                     let properIndex = lineSplitted |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
-                    lineSplitted.[properIndex + 1]
+                    __SOURCE_DIRECTORY__ + "\\" + lineSplitted.[properIndex + 1]
                 else ""
             else ""
 
@@ -64,14 +64,17 @@ let rec mainLoop() =
         let shouldRetrieveScripts = Array.contains("-script")
         let shouldRetrieveTexts = Array.contains("-text")
 
+        if shouldWriteToFile(lineSplitted) && File.Exists(filePath) then
+            File.Delete(filePath);
+        else ()
+
         if shouldRetrieveLinks(lineSplitted) then
             for link in links(document) do
                 if shouldWriteToConsole(lineSplitted) then
                     Console.WriteLine("LINK: inner text: {0}, href: {1}", fst link, snd link)
                 else ()
             if shouldWriteToFile(lineSplitted) then
-                printfn(__SOURCE_DIRECTORY__)
-                File.WriteAllLines(__SOURCE_DIRECTORY__ + "\\" + fileName, links(document) |> Seq.map(fun link -> String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link)))
+                File.AppendAllLines(filePath, links(document) |> Seq.map(fun link -> String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link)))
             else ()
         else ()
             
@@ -79,12 +82,11 @@ let rec mainLoop() =
             for image in images(document) do
                 if shouldWriteToConsole(lineSplitted) then
                     Console.WriteLine("IMAGE: src: {0}, alt:{1}", fst image, snd image)
-                else ()
-            //if shouldWriteToFile(lineSplitted) then
-            //    internalWriter(fileName, links 
-            //    |> Seq.choose(String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link))
-            //    |> Seq.toArray)
-            //else ()
+                else ()            
+            if shouldWriteToFile(lineSplitted) then
+                printfn(__SOURCE_DIRECTORY__)
+                File.AppendAllLines(filePath, images(document) |> Seq.map(fun image -> String.Format("IMAGE: src: {0}, alt:{1}", fst image, snd image)))
+            else ()
         else ()
 
         if shouldRetrieveScripts(lineSplitted) then
@@ -92,11 +94,10 @@ let rec mainLoop() =
                 if shouldWriteToConsole(lineSplitted) then
                     Console.WriteLine("SCRIPT: src: {0}, type: {1}", fst script, snd script)
                 else ()
-            //if shouldWriteToFile(lineSplitted) then
-            //    internalWriter(fileName, links 
-            //    |> Seq.choose(String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link))
-            //    |> Seq.toArray)
-            //else ()
+            if shouldWriteToFile(lineSplitted) then
+                printfn(__SOURCE_DIRECTORY__)
+                File.AppendAllLines(filePath, scripts(document) |> Seq.map(fun script -> String.Format("SCRIPT: src: {0}, type: {1}", fst script, snd script)))
+            else ()
         else ()
     
         if shouldRetrieveTexts(lineSplitted) then
@@ -104,11 +105,10 @@ let rec mainLoop() =
                 if shouldWriteToConsole(lineSplitted) then
                     Console.WriteLine("TEXT: {0}", text)
                 else ()
-            //if shouldWriteToFile(lineSplitted) then
-            //    internalWriter(fileName, links 
-            //    |> Seq.choose(String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link))
-            //    |> Seq.toArray)
-            //else ()
+            if shouldWriteToFile(lineSplitted) then
+                printfn(__SOURCE_DIRECTORY__)
+                File.AppendAllLines(filePath, texts(document) |> Seq.map(fun text -> String.Format("TEXT: {0}", text)))
+            else ()
         else ()
 
         mainLoop()
