@@ -3,7 +3,9 @@
 open System
 open FSharp.Data
 
-let results = HtmlDocument.Load("http://pduch.kis.p.lodz.pl/")
+let (|?) = defaultArg
+
+let results = HtmlDocument.Load("http://ekobiobud.pl/")
 
 let links = 
     results.Descendants ["a"]
@@ -26,6 +28,15 @@ let scripts =
         x.TryGetAttribute("type").Value.Value()
     )
 
+let texts =
+    results.Descendants ["p"]
+    |> Seq.append(results.Descendants["h1"])
+    |> Seq.append(results.Descendants["h2"])
+    |> Seq.append(results.Descendants["h3"])
+    |> Seq.append(results.Descendants["h4"])
+    |> Seq.append(results.Descendants["h5"])
+    |> Seq.append(results.Descendants["h6"])
+    |> Seq.map(fun x -> x.InnerText())
 //let searchResults =
 //    links
 //    |> Seq.filter (fun (name, url) -> 
@@ -36,12 +47,15 @@ let scripts =
 [<EntryPoint>]
 let main argv =
     for link in links do
-        Console.WriteLine("Caption: {0}\nLink: {1}\n", fst link, snd link)
+        Console.WriteLine("LINK: inner text: {0}, href: {1}", fst link, snd link)
 
     for image in images do         
-        Console.WriteLine("Src: {0}\nAlt: {1}\n", fst image, snd image)
+        Console.WriteLine("IMAGE: src: {0}", image)
 
-    for script in scripts do         
-        Console.WriteLine("Src: {0}\nType: {1}\n", fst script, snd script)
+    //for script in scripts do         
+    //    Console.WriteLine("SCRIPT: src: {0}\n", script)
+
+    for text in texts do         
+        Console.WriteLine("TEXT: {0}", text)
     Console.ReadKey() |> ignore
     0 // return an integer exit code
