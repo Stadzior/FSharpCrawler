@@ -12,6 +12,14 @@ let links =
            |> Option.map (fun a -> x.InnerText(), a.Value())
     )
 
+let images = 
+    results.Descendants ["img"]
+    |> Seq.map (fun x -> 
+        x.TryGetAttribute("src").Value.Value(),
+        x.TryGetAttribute("alt").Value.Value()
+    )
+    
+
 //let searchResults =
 //    links
 //    |> Seq.filter (fun (name, url) -> 
@@ -23,5 +31,8 @@ let links =
 let main argv =
     for link in links do
         Console.WriteLine("Caption: {0}\nLink: {1}\n", fst link, snd link)
+
+    for image in images do         
+        Console.WriteLine("Src: {0}\nAlt: {1}\n", fst image, snd image)
     Console.ReadKey() |> ignore
     0 // return an integer exit code
