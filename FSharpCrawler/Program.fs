@@ -3,9 +3,12 @@
 open System
 open FSharp.Data
 
-let (|?) = defaultArg
+let getAttrOrEmptyStr (elem: HtmlNode) attr =
+  match elem.TryGetAttribute(attr) with
+  | Some v -> v.Value()
+  | None -> ""
 
-let results = HtmlDocument.Load("http://ekobiobud.pl/")
+let results = HtmlDocument.Load("http://joemonster.org//");
 
 let links = 
     results.Descendants ["a"]
@@ -16,16 +19,16 @@ let links =
 
 let images = 
     results.Descendants ["img"]
-    |> Seq.map (fun x -> 
-        x.TryGetAttribute("src").Value.Value(),
-        x.TryGetAttribute("alt").Value.Value()
+    |> Seq.map (fun x ->
+        getAttrOrEmptyStr x "src",
+        getAttrOrEmptyStr x "alt"
     )
 
 let scripts =
     results.Descendants ["script"]
-    |> Seq.map(fun x ->        
-        x.TryGetAttribute("src").Value.Value(),
-        x.TryGetAttribute("type").Value.Value()
+    |> Seq.map (fun x ->
+        getAttrOrEmptyStr x "src",
+        getAttrOrEmptyStr x "type"
     )
 
 let texts =
@@ -37,25 +40,23 @@ let texts =
     |> Seq.append(results.Descendants["h5"])
     |> Seq.append(results.Descendants["h6"])
     |> Seq.map(fun x -> x.InnerText())
-//let searchResults =
-//    links
-//    |> Seq.filter (fun (name, url) -> 
-//                    name <> "Cached" && name <> "Similar" && url.StartsWith("/url?"))
-//    |> Seq.map (fun (name, url) -> name, url.Substring(0, url.IndexOf("&sa=")).Replace("/url?q=", ""))
-//    |> Seq.toArray
 
 [<EntryPoint>]
 let main argv =
+
+    //let lineSplitted = Console.ReadLine().Split(' ');
+
     for link in links do
         Console.WriteLine("LINK: inner text: {0}, href: {1}", fst link, snd link)
 
     for image in images do         
-        Console.WriteLine("IMAGE: src: {0}", image)
+        Console.WriteLine("IMAGE: src: {0}, alt:{1}", fst image, snd image)
 
-    //for script in scripts do         
-    //    Console.WriteLine("SCRIPT: src: {0}\n", script)
+    for script in scripts do         
+        Console.WriteLine("SCRIPT: src: {0}, type: {1}", fst script, snd script)
 
     for text in texts do         
         Console.WriteLine("TEXT: {0}", text)
     Console.ReadKey() |> ignore
+
     0 // return an integer exit code
