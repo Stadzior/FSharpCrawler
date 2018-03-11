@@ -23,11 +23,6 @@ let images (document : HtmlDocument) =
         getAttrOrEmptyStr x "alt"
     )
 
-//let internalWriter (fileName: string, lines: string[]) =
-
-//    for line in lines do
-//        sw.WriteLine(line)
-
 let scripts (document : HtmlDocument) =
     document.Descendants ["script"]
     |> Seq.map (fun x ->
@@ -59,9 +54,9 @@ let rec mainLoop() =
         let fileName = 
             if shouldWriteToFile(lineSplitted) then
                 if shouldWriteToConsole(lineSplitted) then
-                    lineSplitted.[3] 
-                else
-                    lineSplitted.[4]
+                    let properIndex = lineSplitted |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
+                    lineSplitted.[properIndex + 1]
+                else ""
             else ""
 
         let shouldRetrieveLinks = Array.contains("-a")
@@ -74,11 +69,10 @@ let rec mainLoop() =
                 if shouldWriteToConsole(lineSplitted) then
                     Console.WriteLine("LINK: inner text: {0}, href: {1}", fst link, snd link)
                 else ()
-            //if shouldWriteToFile(lineSplitted) then
-            //    internalWriter(fileName, links 
-            //    |> Seq.choose(String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link))
-            //    |> Seq.toArray)
-            //else ()
+            if shouldWriteToFile(lineSplitted) then
+                printfn(__SOURCE_DIRECTORY__)
+                File.WriteAllLines(__SOURCE_DIRECTORY__ + "\\" + fileName, links(document) |> Seq.map(fun link -> String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link)))
+            else ()
         else ()
             
         if shouldRetrieveImages(lineSplitted) then
