@@ -27,10 +27,9 @@ let scripts (document : HtmlDocument) =
     document.Descendants ["script"]
     |> Seq.map (fun x ->
         getAttrOrEmptyStr x "src",
-        getAttrOrEmptyStr x "type"
+        getAttrOrEmptyStr x "type",
+        x.InnerText()
     )
-    |> Seq.filter(fun x ->
-        (fst x).Length > 0 || (snd x).Length > 0)
 
 let texts (document : HtmlDocument) =
     document.Descendants ["p"]
@@ -41,7 +40,7 @@ let texts (document : HtmlDocument) =
     |> Seq.append(document.Descendants["h5"])
     |> Seq.append(document.Descendants["h6"])
     |> Seq.map(fun x -> x.InnerText())
-
+    
 let rec mainLoop() = 
     let lineSplitted = Console.ReadLine().Split(' ');
     let shouldQuit = Array.contains("q");
@@ -93,12 +92,15 @@ let rec mainLoop() =
 
         if shouldRetrieveScripts(lineSplitted) then
             for script in scripts(document) do
+                let src, scriptType, innerScript = script;
                 if shouldWriteToConsole(lineSplitted) then
-                    Console.WriteLine("SCRIPT: src: {0}, type: {1}", fst script, snd script)
+                    Console.WriteLine("SCRIPT: src: {0}, type: {1}, inner script:{2}", src, scriptType, innerScript)
                 else ()
             if shouldWriteToFile(lineSplitted) then
                 printfn(__SOURCE_DIRECTORY__)
-                File.AppendAllLines(filePath, scripts(document) |> Seq.map(fun script -> String.Format("SCRIPT: src: {0}, type: {1}", fst script, snd script)))
+                File.AppendAllLines(filePath, scripts(document) |> Seq.map(fun script -> 
+                    let src, scriptType, innerScript = script;
+                    String.Format("SCRIPT: src: {0}, type: {1}, inner script:{2}", src, scriptType, innerScript)))
             else ()
         else ()
     
