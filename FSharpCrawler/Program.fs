@@ -29,6 +29,8 @@ let scripts (document : HtmlDocument) =
         getAttrOrEmptyStr x "src",
         getAttrOrEmptyStr x "type"
     )
+    |> Seq.filter(fun x ->
+        (fst x).Length > 0 || (snd x).Length > 0)
 
 let texts (document : HtmlDocument) =
     document.Descendants ["p"]
