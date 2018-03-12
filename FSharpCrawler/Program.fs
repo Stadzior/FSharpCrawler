@@ -11,11 +11,15 @@ let getAttrOrEmptyStr (elem: HtmlNode) attr =
   
 let links (document : HtmlDocument) = 
     document.Descendants ["a"]
-    |> Seq.choose (fun x -> 
-           x.TryGetAttribute("href")
-           |> Option.map (fun a -> x.InnerText(), a.Value())
+        |> Seq.choose (fun x -> 
+        x.TryGetAttribute("href")
+        |> Option.map (fun a -> x.InnerText(), a.Value())
     )
 
+let linksWordsCount (document : HtmlDocument) =
+    document.Descendants ["a"]
+        |> Seq.map (fun x -> x.InnerText())
+        |> Seq.countBy(fun y -> y)
 let images (document : HtmlDocument) = 
     document.Descendants ["img"]
     |> Seq.map (fun x ->
@@ -49,7 +53,11 @@ let rec mainLoop() =
         Console.WriteLine("Quit requested...")
     else
         let document = HtmlDocument.Load(lineSplitted.[0]);
-    
+        
+        Console.WriteLine("{0}", linksWordsCount);
+        for c in linksWordsCount(document) do
+            Console.WriteLine("LINK: inner text: {0}, count: {1}", fst c, snd c)
+
         let shouldWriteToConsole = Array.contains("-console")
         let shouldWriteToFile = Array.contains("-file")
         let filePath = 
@@ -68,7 +76,7 @@ let rec mainLoop() =
         if shouldWriteToFile(lineSplitted) && File.Exists(filePath) then
             File.Delete(filePath);
         else ()
-
+        
         if shouldRetrieveLinks(lineSplitted) then
             for link in links(document) do
                 if shouldWriteToConsole(lineSplitted) then
