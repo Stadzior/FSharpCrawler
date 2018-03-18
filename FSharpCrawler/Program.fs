@@ -34,14 +34,12 @@ let textWords (document : HtmlDocument) =
     |> Seq.append(document.Descendants["h6"])
     |> Seq.map(fun x -> x.InnerText().Split(' '))
     |> Seq.concat
-        
-let countWords(source : seq<string>) =
-    source
-        |> Seq.countBy(fun x -> x)
  
 let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
         seq [sequence1;sequence2]
         |> Seq.concat
+
+//let countWords =words |> Seq.countBy(fun x -> x)
 
 [<EntryPoint>]
 let main argv =     
@@ -67,14 +65,18 @@ let main argv =
             if shouldRetrieveTexts(argv) then yield textWords(document)
         ]
         |> Seq.concat
+        |> Seq.map(fun x -> (string x).Replace('!',' ').Replace('?',' ').Replace('.',' ').Trim().ToLower())
+        |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(x)))
 
     if shouldWriteToConsole(argv) then
-        for word in words do
+        for word in words |> Seq.countBy(fun x -> x) |> Seq.sortBy(fun x -> x) do
             Console.WriteLine(word)
 
     if shouldWriteToFile(argv) then
         if File.Exists(filePath) then
             File.Delete(filePath);
-        File.AppendAllLines(filePath, words)
-        
+        File.AppendAllLines(filePath, words 
+            |> Seq.countBy(fun x -> x)
+            |> Seq.map(fun x -> x.ToString()))
+    
     0 // return an integer exit code
