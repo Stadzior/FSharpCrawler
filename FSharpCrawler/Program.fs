@@ -9,33 +9,22 @@ let getAttrOrEmptyStr (elem: HtmlNode) attr =
   | Some v -> v.Value()
   | None -> ""
   
-let links (document : HtmlDocument) = 
+let linkWords (document : HtmlDocument) = 
     document.Descendants ["a"]
-        |> Seq.choose (fun x -> 
-        x.TryGetAttribute("href")
-        |> Option.map (fun a -> x.InnerText(), a.Value())
-    )
+        |> Seq.map (fun x -> x.InnerText().Split(' '))
+        |> Seq.concat
 
-let linksWordsCount (document : HtmlDocument) =
-    document.Descendants ["a"]
-        |> Seq.map (fun x -> x.InnerText())
-        |> Seq.countBy(fun y -> y)
-let images (document : HtmlDocument) = 
+let imageWords (document : HtmlDocument) = 
     document.Descendants ["img"]
-    |> Seq.map (fun x ->
-        getAttrOrEmptyStr x "src",
-        getAttrOrEmptyStr x "alt"
-    )
+        |> Seq.map (fun x -> (getAttrOrEmptyStr x "alt").Split(' '))
+        |> Seq.concat
 
-let scripts (document : HtmlDocument) =
+let scriptWords (document : HtmlDocument) =
     document.Descendants ["script"]
-    |> Seq.map (fun x ->
-        getAttrOrEmptyStr x "src",
-        getAttrOrEmptyStr x "type",
-        x.InnerText()
-    )
+    |> Seq.map (fun x -> x.InnerText().Split(' '))
+    |> Seq.concat
 
-let texts (document : HtmlDocument) =
+let textWords (document : HtmlDocument) =
     document.Descendants ["p"]
     |> Seq.append(document.Descendants["h1"])
     |> Seq.append(document.Descendants["h2"])
@@ -43,89 +32,49 @@ let texts (document : HtmlDocument) =
     |> Seq.append(document.Descendants["h4"])
     |> Seq.append(document.Descendants["h5"])
     |> Seq.append(document.Descendants["h6"])
-    |> Seq.map(fun x -> x.InnerText())
-    
-let rec mainLoop() = 
-    let lineSplitted = Console.ReadLine().Split(' ');
-    let shouldQuit = Array.contains("q");
-
-    if (shouldQuit(lineSplitted)) then
-        Console.WriteLine("Quit requested...")
-    else
-        let document = HtmlDocument.Load(lineSplitted.[0]);
+    |> Seq.map(fun x -> x.InnerText().Split(' '))
+    |> Seq.concat
         
-        Console.WriteLine("{0}", linksWordsCount);
-        for c in linksWordsCount(document) do
-            Console.WriteLine("LINK: inner text: {0}, count: {1}", fst c, snd c)
-
-        let shouldWriteToConsole = Array.contains("-console")
-        let shouldWriteToFile = Array.contains("-file")
-        let filePath = 
-            if shouldWriteToFile(lineSplitted) then
-                if shouldWriteToConsole(lineSplitted) then
-                    let properIndex = lineSplitted |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
-                    __SOURCE_DIRECTORY__ + "\\" + lineSplitted.[properIndex + 1]
-                else ""
-            else ""
-
-        let shouldRetrieveLinks = Array.contains("-a")
-        let shouldRetrieveImages = Array.contains("-img")
-        let shouldRetrieveScripts = Array.contains("-script")
-        let shouldRetrieveTexts = Array.contains("-text")
-
-        if shouldWriteToFile(lineSplitted) && File.Exists(filePath) then
-            File.Delete(filePath);
-        else ()
-        
-        if shouldRetrieveLinks(lineSplitted) then
-            for link in links(document) do
-                if shouldWriteToConsole(lineSplitted) then
-                    Console.WriteLine("LINK: inner text: {0}, href: {1}", fst link, snd link)
-                else ()
-            if shouldWriteToFile(lineSplitted) then
-                File.AppendAllLines(filePath, links(document) |> Seq.map(fun link -> String.Format("LINK: inner text: {0}, href: {1}", fst link, snd link)))
-            else ()
-        else ()
-            
-        if shouldRetrieveImages(lineSplitted) then
-            for image in images(document) do
-                if shouldWriteToConsole(lineSplitted) then
-                    Console.WriteLine("IMAGE: src: {0}, alt:{1}", fst image, snd image)
-                else ()            
-            if shouldWriteToFile(lineSplitted) then
-                printfn(__SOURCE_DIRECTORY__)
-                File.AppendAllLines(filePath, images(document) |> Seq.map(fun image -> String.Format("IMAGE: src: {0}, alt:{1}", fst image, snd image)))
-            else ()
-        else ()
-
-        if shouldRetrieveScripts(lineSplitted) then
-            for script in scripts(document) do
-                let src, scriptType, innerScript = script;
-                if shouldWriteToConsole(lineSplitted) then
-                    Console.WriteLine("SCRIPT: src: {0}, type: {1}, inner script:{2}", src, scriptType, innerScript)
-                else ()
-            if shouldWriteToFile(lineSplitted) then
-                printfn(__SOURCE_DIRECTORY__)
-                File.AppendAllLines(filePath, scripts(document) |> Seq.map(fun script -> 
-                    let src, scriptType, innerScript = script;
-                    String.Format("SCRIPT: src: {0}, type: {1}, inner script:{2}", src, scriptType, innerScript)))
-            else ()
-        else ()
-    
-        if shouldRetrieveTexts(lineSplitted) then
-            for text in texts(document) do
-                if shouldWriteToConsole(lineSplitted) then
-                    Console.WriteLine("TEXT: {0}", text)
-                else ()
-            if shouldWriteToFile(lineSplitted) then
-                printfn(__SOURCE_DIRECTORY__)
-                File.AppendAllLines(filePath, texts(document) |> Seq.map(fun text -> String.Format("TEXT: {0}", text)))
-            else ()
-        else ()
-
-        mainLoop()
+let countWords(source : seq<string>) =
+    source
+        |> Seq.countBy(fun x -> x)
+ 
+let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
+        seq [sequence1;sequence2]
+        |> Seq.concat
 
 [<EntryPoint>]
-let rec main argv = 
-    mainLoop()
+let main argv =     
+    let shouldWriteToConsole = Array.contains("-console")
+    let shouldWriteToFile = Array.contains("-file")
+    let filePath = 
+        if shouldWriteToFile(argv) then
+                let fileAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
+                __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
+        else ""
+
+    let shouldRetrieveLinks = Array.contains("-a")
+    let shouldRetrieveImages = Array.contains("-img")
+    let shouldRetrieveScripts = Array.contains("-script")
+    let shouldRetrieveTexts = Array.contains("-text")
+
+    let document = HtmlDocument.Load(argv.[0]);
+    let words =
+        [ 
+            if shouldRetrieveLinks(argv) then yield linkWords(document)
+            if shouldRetrieveImages(argv) then yield imageWords(document)
+            if shouldRetrieveScripts(argv) then yield scriptWords(document)
+            if shouldRetrieveTexts(argv) then yield textWords(document)
+        ]
+        |> Seq.concat
+
+    if shouldWriteToConsole(argv) then
+        for word in words do
+            Console.WriteLine(word)
+
+    if shouldWriteToFile(argv) then
+        if File.Exists(filePath) then
+            File.Delete(filePath);
+        File.AppendAllLines(filePath, words)
+        
     0 // return an integer exit code
