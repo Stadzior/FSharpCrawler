@@ -2,27 +2,13 @@
 open System
 open System.Text.RegularExpressions
 
-// (?i) - case insensitive mode
-// [\w]+ - one or more word or '-' chars
-// \. - one dot
-// \w{2,3} - two to three word chars 
-// (\.\w{2})? - once or none dot and two word chars 
 // e.g. aa.com, aa-aa.com.pl, aaaaaaa.co.uk
-let baseHostUrlPattern = "(?i)[\w-]+\.\w{2,3}(\.\w{2})?"
+let baseHostUrlPattern = "(?i)^[\w\-]*\.\w{2,3}(\.\w{2})?$"
 
-// (?i) - case insensitive mode
-// (^https?|^http?):// - one or none occurence of https:// or http://
-// (^www.?)? - one or none occurence of www.
-// \/(.)* - / and any char
-//e.g. http://aaa.com, https://
-let fullUrlPattern = "(?i)((^https?|^http?)://)?(^www.?)?" + baseHostUrlPattern + "\/(.)*"
-
-// (?i) - case insensitive mode
-// \/ - /
-// ([\w\-]+\/)+ - one or more occurence of word char with successing /
-// [\w\-]+\.[\w]{1,4} - the very end of relative path (e.g. example.html)
 // e.g. /aaa/bb/c-c/ddd.html
-let relativeUrl = "(?i)\/([\w\-]+\/)+[\w\-]+\.[\w]{1,4}"
+let relativeUrlPattern = "(?i)^(\/[\w\-]+)+(\.[\w]{1,4})?$"
+
+let fullUrlPattern = "(?i)^((https|http)://)?(www\.)?\w[\w-]+\w\.\w{2,3}(\.\w{2})?((\/[\w\-]+)+(\.[\w]{1,4}))*$"
 
 let normalizeUrl (inputUrl : string) =
     let url = Uri.TryCreate(inputUrl, UriKind.Absolute)
