@@ -30,7 +30,6 @@ let getLinksFromUrl (includeExternal : bool, url : string) =
 
 //let linkWordsFromDocument (document : HtmlDocument) = 
 
-
 //let linkWordsFromDocuments (documents : seq<HtmlDocument>) =
 //    documents 
 //        |> Seq.map(fun x -> linkWords(x))
