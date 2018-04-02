@@ -5,6 +5,9 @@ open FSharp.Data
 open System.IO
 open System.Text.RegularExpressions
 open ActivePatterns
+open Helpers
+open UrlHelpers
+
 //let countWords =words |> Seq.countBy(fun x -> x)
 
 [<EntryPoint>]
@@ -34,7 +37,7 @@ let main argv =
                 |> Seq.iter(fun x -> Console.WriteLine(fst(x)))
             Console.WriteLine("Proceeding with reachable ones...")
 
-        let depthLevel = 
+        let depth = 
             if tags |> Seq.contains("-depth") then                
                 let depthTagIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-depth"))
                 match argv.[depthTagIndex + 1] with
@@ -43,7 +46,7 @@ let main argv =
             else
                 0
         
-        Console.WriteLine("Selected depth: " + depthLevel.ToString())
+        Console.WriteLine("Selected depth: " + depth.ToString())
 
         let reachableBodies = 
             bodies 
@@ -51,16 +54,28 @@ let main argv =
                 |> Seq.map(fun x -> (fst(x), match snd(x) with
                                                 | Some x -> x
                                                 | None -> Unchecked.defaultof<HtmlNode>))
-
+        let reachableBodiesWithDepth =
+             mergeSeq(reachableBodies,
+                 reachableBodies
+                    |> Seq.collect(fun x -> getLinksFromNodeWithDepth(true, x, depth)
+                                                |> Seq.map(fun y -> 
+                                                    if Regex.IsMatch(y, relativeUrlPattern) then
+                                                       Regex.Match(fst(x), baseHostUrlPattern).Value + y
+                                                    else
+                                                       y))
+                    |> Seq.map(fun x -> match tryGetBodyFromUrl(x) with
+                                         | Some y -> (x,y)
+                                         | None -> ("",Unchecked.defaultof<HtmlNode>))
+                    |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(fst(x)))))
 
         let words = 
-            reachableBodies
+            reachableBodiesWithDepth
                 |> Seq.map(fun x -> Helpers.getAllWordsFromNode(snd(x)))
                 |> Seq.concat
 
         let links =
             reachableBodies
-                |> Seq.collect(fun x -> Helpers.getLinksFromNode(tags |> Seq.contains("-inclext"), x))
+                |> Seq.collect(fun x -> Helpers.getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, depth))
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
