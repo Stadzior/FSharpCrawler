@@ -4,8 +4,6 @@ open System
 open FSharp.Data
 open System.IO
 open System.Text.RegularExpressions
-open UrlHelpers
-open System
 
 //let countWords =words |> Seq.countBy(fun x -> x)
 
@@ -17,9 +15,9 @@ let main argv =
         if (containsUrlToken(argv)) then
             let urlAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-url"))
             argv.[urlAttributeIndex + 1].Split(',')
-            |> Array.filter(fun x -> Regex.IsMatch(x, UrlHelpers.baseHostUrlPattern))
-            |> Array.map(fun x -> UrlHelpers.normalizeUrl(x))
-            |> Array.distinct
+                |> Array.filter(fun x -> Regex.IsMatch(x, UrlHelpers.baseHostUrlPattern))
+                |> Array.map(fun x -> UrlHelpers.normalizeUrl(x))
+                |> Array.distinct
         else
             Array.empty<string>
 
@@ -34,21 +32,41 @@ let main argv =
                     let fileAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
                     __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
             else ""   
+        
+        let bodies = urls |> Seq.map(fun x -> (x, Helpers.tryGetBodyFromUrl(x)))
 
+        if bodies |> Seq.exists(fun x -> snd(x).IsNone) then
+            Console.WriteLine("Following urls are impossible to reach (incorrect url?) or lacks body tag (not a proper html file?):")
+            bodies 
+                |> Seq.filter(fun x -> snd(x).IsNone) 
+                |> Seq.iter(fun x -> Console.WriteLine(fst(x)))
+            Console.WriteLine("Proceeding with reachable ones...")
+
+        let reachableBodies = 
+            bodies 
+                |> Seq.filter(fun x -> snd(x).IsSome)
+                |> Seq.map(fun x -> (fst(x), match snd(x) with
+                                                | Some x -> x
+                                                | None -> Unchecked.defaultof<HtmlNode>))
         let words = 
-            urls
-            |> Seq.map(fun x -> Helpers.getAllWordsFromUrl(x))
-            |> Seq.concat
+            reachableBodies
+                |> Seq.map(fun x -> Helpers.getAllWordsFromNode(snd(x)))
+                |> Seq.concat
+
+        let reachableBodiesArray = reachableBodies |> Seq.toArray
+        let temp = Helpers.getAllWordsFromNode(snd(reachableBodiesArray.[0])) |> Seq.toArray
+        let wordsArray = words |> Seq.toArray
+        let leafs = Helpers.getAllLeafs(snd(reachableBodiesArray.[0])) |> Seq.toArray
 
         let links =
-            urls
-            |> Seq.map(fun x -> Helpers.getLinksFromUrl((tags |> Seq.contains("-inclext")), x))
-            |> Seq.concat
-            |> Seq.map(fun x ->
-                match x with
-                | Some x -> x
-                | None -> "")
-            |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(x)))
+            reachableBodies
+                |> Seq.map(fun x -> Helpers.getLinksFromNode(tags |> Seq.contains("-inclext"), x))
+                |> Seq.concat
+                |> Seq.map(fun x ->
+                    match x with
+                    | Some x -> x
+                    | None -> "")
+                |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(x)))
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
