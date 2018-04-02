@@ -2,7 +2,7 @@
   "profiles": {
     "FSharpCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "-url ekobiobud.pl,pduch.p.lodz.pl -console -text -a"
+      "commandLineArgs": "-url ekobiobud.pl,pduch.p.lodz.pl,wp.pl,onet.pl -console -text -a -depth 2"
     }
   }
 }

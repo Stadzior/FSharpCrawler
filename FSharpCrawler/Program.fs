@@ -42,6 +42,8 @@ let main argv =
                 | _ -> Console.WriteLine("Invalid depth value it should be an integer, proceeding with 0.");0;
             else
                 0
+        
+        Console.WriteLine("Selected depth: " + depthLevel.ToString())
 
         let reachableBodies = 
             bodies 
@@ -49,6 +51,8 @@ let main argv =
                 |> Seq.map(fun x -> (fst(x), match snd(x) with
                                                 | Some x -> x
                                                 | None -> Unchecked.defaultof<HtmlNode>))
+
+
         let words = 
             reachableBodies
                 |> Seq.map(fun x -> Helpers.getAllWordsFromNode(snd(x)))
