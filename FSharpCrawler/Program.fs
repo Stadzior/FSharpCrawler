@@ -19,6 +19,7 @@ let main argv =
             argv.[urlAttributeIndex + 1].Split(',')
             |> Array.filter(fun x -> Regex.IsMatch(x, UrlHelpers.baseHostUrlPattern))
             |> Array.map(fun x -> UrlHelpers.normalizeUrl(x))
+            |> Array.distinct
         else
             Array.empty<string>
 

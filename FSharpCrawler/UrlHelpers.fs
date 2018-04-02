@@ -3,7 +3,7 @@ open System
 open System.Text.RegularExpressions
 
 // e.g. aa.com, aa-aa.com.pl, aaaaaaa.co.uk
-let baseHostUrlPattern = "(?i)^[\w\-]*\.\w{2,3}(\.\w{2})?$"
+let baseHostUrlPattern = "(?i)^[\w\-]*(\.\w([\-\w]*\w)*)*\.\w{2,3}$"
 
 // e.g. /aaa/bb/c-c/ddd.html
 let relativeUrlPattern = "(?i)^(\/[\w\-]+)+(\.[\w]{1,4})?$"
