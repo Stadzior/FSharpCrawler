@@ -53,10 +53,11 @@ let main argv =
                 |> Seq.map(fun x -> Helpers.getAllWordsFromNode(snd(x)))
                 |> Seq.concat
 
-        let reachableBodiesArray = reachableBodies |> Seq.toArray
-        let temp = Helpers.getAllWordsFromNode(snd(reachableBodiesArray.[0])) |> Seq.toArray
-        let wordsArray = words |> Seq.toArray
-        let leafs = Helpers.getAllLeafs(snd(reachableBodiesArray.[0])) |> Seq.toArray
+        //let reachableBodiesArray = reachableBodies |> Seq.toArray
+        //let temp = Helpers.getAllWordsFromNode(snd(reachableBodiesArray.[0])) |> Seq.toArray
+        //let wordsArray = words |> Seq.toArray
+        //let leafs = reachableBodies |> Seq.map(fun x -> Helpers.getAllLeafs(snd(x))) |> Seq.toArray
+        //let descendants = reachableBodies |> Seq.map(fun x -> snd(x).Descendants()) |> Seq.concat |> Seq.toArray
 
         let links =
             reachableBodies
