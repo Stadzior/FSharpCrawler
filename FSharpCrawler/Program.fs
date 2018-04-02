@@ -4,17 +4,15 @@ open System
 open FSharp.Data
 open System.IO
 open System.Text.RegularExpressions
-
+open ActivePatterns
 //let countWords =words |> Seq.countBy(fun x -> x)
 
 [<EntryPoint>]
 let main argv =     
-    let containsUrlToken = Array.contains("-url")
-
     let urls = 
-        if (containsUrlToken(argv)) then
-            let urlAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-url"))
-            argv.[urlAttributeIndex + 1].Split(',')
+        if argv |> Array.contains("-url") then
+            let urlTagIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-url"))
+            argv.[urlTagIndex + 1].Split(',')
                 |> Array.filter(fun x -> Regex.IsMatch(x, UrlHelpers.baseHostUrlPattern))
                 |> Array.map(fun x -> UrlHelpers.normalizeUrl(x))
                 |> Array.distinct
@@ -25,14 +23,8 @@ let main argv =
         Console.WriteLine("No valid urls provided.")
         0
     else
-        let tags = argv |> Seq.filter(fun x -> Regex.IsMatch(x, "\-[\w]*"))  
+        let tags = argv |> Seq.filter(fun x -> Regex.IsMatch(x, "\-[\w]*"))    
 
-        let filePath = 
-            if tags |> Seq.contains("-file") then
-                    let fileAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
-                    __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
-            else ""   
-        
         let bodies = urls |> Seq.map(fun x -> (x, Helpers.tryGetBodyFromUrl(x)))
 
         if bodies |> Seq.exists(fun x -> snd(x).IsNone) then
@@ -41,6 +33,15 @@ let main argv =
                 |> Seq.filter(fun x -> snd(x).IsNone) 
                 |> Seq.iter(fun x -> Console.WriteLine(fst(x)))
             Console.WriteLine("Proceeding with reachable ones...")
+
+        let depthLevel = 
+            if tags |> Seq.contains("-depth") then                
+                let depthTagIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-depth"))
+                match argv.[depthTagIndex + 1] with
+                | Int i -> i
+                | _ -> Console.WriteLine("Invalid depth value it should be an integer, proceeding with 0.");0;
+            else
+                0
 
         let reachableBodies = 
             bodies 
@@ -71,13 +72,20 @@ let main argv =
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
-                for word in words |> Seq.countBy(fun x -> x) |> Seq.sortBy(fun x -> x) do
+                for word in words 
+                        |> Seq.countBy(fun x -> x) 
+                        |> Seq.sortBy(fun x -> x) do
                     Console.WriteLine(word)
             if tags |> Seq.contains("-a") then
                 for link in links do
                     Console.WriteLine(link)
 
         if tags |> Seq.contains("-file") then
+            let filePath = 
+                if tags |> Seq.contains("-file") then
+                        let fileAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
+                        __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
+                else "" 
             if File.Exists(filePath) then
                 File.Delete(filePath)
             if tags |> Seq.contains("-text") then
