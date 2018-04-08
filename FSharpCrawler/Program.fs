@@ -41,8 +41,8 @@ let main argv =
             if tags |> Seq.contains("-depth") then                
                 let depthTagIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-depth"))
                 match argv.[depthTagIndex + 1] with
-                | Int i -> i
-                | _ -> Console.WriteLine("Invalid depth value it should be an integer, proceeding with 0.");0;
+                    | Int i -> i
+                    | _ -> Console.WriteLine("Invalid depth value it should be an integer, proceeding with 0.");0;
             else
                 0
         
@@ -54,15 +54,34 @@ let main argv =
                 |> Seq.map(fun x -> (fst(x), match snd(x) with
                                                 | Some x -> x
                                                 | None -> Unchecked.defaultof<HtmlNode>))
+
+        let links =
+            reachableBodies
+                |> Seq.collect(fun x -> Helpers.getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, fst(x), depth)
+                                            |> Seq.map(fun y -> y.Replace("%20",""))
+                                            |> Seq.map(fun y -> y.Replace(" ", ""))
+                                            |> Seq.map(fun y -> 
+                                                if (y.Contains("?")) then
+                                                    y.Substring(0, y.IndexOf('?'))
+                                                else
+                                                    y)                             
+                                            |> Seq.filter(fun y -> not(String.IsNullOrWhiteSpace(y) || y.Contains("mailto") || y.Contains("#")))
+                                            |> Seq.distinct
+                                            |> Seq.map(fun z -> 
+                                                if Regex.IsMatch(z, relativeUrlPattern) then
+                                                    if (z.StartsWith('/')) then
+                                                        Regex.Match(fst(x), baseHostUrlPattern).Value + z
+                                                    else
+                                                        Regex.Match(fst(x), baseHostUrlPattern).Value + "/" + z
+                                                else
+                                                    z))
+                |> Seq.distinct
+
+        let linkz = links |> Seq.toArray
+
         let reachableBodiesWithDepth =
              mergeSeq(reachableBodies,
-                 reachableBodies
-                    |> Seq.collect(fun x -> getLinksFromNodeWithDepth(true, x, fst(x), depth)
-                                                |> Seq.map(fun y -> 
-                                                    if Regex.IsMatch(y, relativeUrlPattern) then
-                                                       Regex.Match(fst(x), baseHostUrlPattern).Value + y
-                                                    else
-                                                       y))
+                 links
                     |> Seq.map(fun x -> match tryGetBodyFromUrl(x) with
                                          | Some y -> (x,y)
                                          | None -> ("",Unchecked.defaultof<HtmlNode>))
@@ -72,10 +91,6 @@ let main argv =
             reachableBodiesWithDepth
                 |> Seq.map(fun x -> Helpers.getAllWordsFromNode(snd(x)))
                 |> Seq.concat
-
-        let links =
-            reachableBodies
-                |> Seq.collect(fun x -> Helpers.getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, fst(x), depth))
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then

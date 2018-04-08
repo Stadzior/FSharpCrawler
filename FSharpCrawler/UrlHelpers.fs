@@ -6,7 +6,7 @@ open System.Text.RegularExpressions
 let baseHostUrlPattern = "(?i)^[\w\-]*(\.\w([\-\w]*\w)*)*\.\w{2,3}[\/]?$"
 
 // e.g. /aaa/bb/c-c/ddd.html
-let relativeUrlPattern = "(?i)^(\/[\w\-]+)+(\.[\w]{1,4})?[\/]?$"
+let relativeUrlPattern = "(?i)^([\/]?[\w\-]+)+(\.[\w]{1,4})?[\/]?$"
 
 let fullUrlPattern = "(?i)^((https|http)://)?(www\.)?\w[\w\-]*(\.\w([\-\w]*\w)*)*\.\w{2,3}[\/]?$"
 
@@ -31,4 +31,7 @@ let normalizeUrl (inputUrl : string) =
     | None -> ""
 
 let transformRelativeToFullUrl (inputUrl : string, baseUrl : string) =
-    normalizeUrl (baseUrl + inputUrl)
+    if (inputUrl.StartsWith('/')) then
+        normalizeUrl(baseUrl + inputUrl)
+    else
+        normalizeUrl(baseUrl + "/" + inputUrl)

@@ -33,10 +33,7 @@ let getLinksFromNode (includeExternal : bool, urlNodeTuple : string * HtmlNode) 
 
 let tryGetBodyFromUrl(url : string) : HtmlNode option =
     try
-        if url.Contains("mailto") then
-            None
-        else
-            HtmlDocument.Load(url).TryGetBody()
+         HtmlDocument.Load(url).TryGetBody()
     with
         | :? WebException as _ex -> 
                 try
