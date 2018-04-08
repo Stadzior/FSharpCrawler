@@ -3,12 +3,12 @@ open System
 open System.Text.RegularExpressions
 
 // e.g. aa.com, aa-aa.com.pl, aaaaaaa.co.uk
-let baseHostUrlPattern = "(?i)^[\w\-]*(\.\w([\-\w]*\w)*)*\.\w{2,3}$"
+let baseHostUrlPattern = "(?i)^[\w\-]*(\.\w([\-\w]*\w)*)*\.\w{2,3}[\/]?$"
 
 // e.g. /aaa/bb/c-c/ddd.html
-let relativeUrlPattern = "(?i)^(\/[\w\-]+)+(\.[\w]{1,4})?$"
+let relativeUrlPattern = "(?i)^(\/[\w\-]+)+(\.[\w]{1,4})?[\/]?$"
 
-let fullUrlPattern = "(?i)^((https|http)://)?(www\.)?\w[\w-]+\w\.\w{2,3}(\.\w{2})?((\/[\w\-]+)+(\.[\w]{1,4}))*$"
+let fullUrlPattern = "(?i)^((https|http)://)?(www\.)?\w[\w\-]*(\.\w([\-\w]*\w)*)*\.\w{2,3}[\/]?$"
 
 let normalizeUrl (inputUrl : string) =
     let url = Uri.TryCreate(inputUrl, UriKind.Absolute)
@@ -29,3 +29,6 @@ let normalizeUrl (inputUrl : string) =
                 | true -> "http://" + host + path
                 | false -> "http://www." + host + path
     | None -> ""
+
+let transformRelativeToFullUrl (inputUrl : string, baseUrl : string) =
+    normalizeUrl (baseUrl + inputUrl)

@@ -5,6 +5,7 @@ open System
 open System.Net
 open System.Text.RegularExpressions
 open UrlHelpers
+open System.IO
 
 // e.g. aaaa-aaa'a
 let wordPattern = "(^[\w]$)|(^[\w](\w|\-|\')*[\w]$)"
@@ -32,7 +33,10 @@ let getLinksFromNode (includeExternal : bool, urlNodeTuple : string * HtmlNode) 
 
 let tryGetBodyFromUrl(url : string) : HtmlNode option =
     try
-        HtmlDocument.Load(url).TryGetBody()
+        if url.Contains("mailto") then
+            None
+        else
+            HtmlDocument.Load(url).TryGetBody()
     with
         | :? WebException as _ex -> 
                 try
@@ -42,18 +46,25 @@ let tryGetBodyFromUrl(url : string) : HtmlNode option =
                     | :? UriFormatException as _ex -> None
         | :? UriFormatException as _ex -> None        
         | :? NotSupportedException as _ex -> None
+        | :? ArgumentException as _ex -> None
+        | :? FileNotFoundException as _ex -> None
 
-let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, depth : int) =
+let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, baseUrl : string, depth : int) =
     (if (depth < 1) then
         getLinksFromNode(includeExternal, urlNodeTuple)
     else
         getLinksFromNode(includeExternal, urlNodeTuple)
+            |> Seq.map(fun x -> if Regex.IsMatch(x, relativeUrlPattern) then
+                                    transformRelativeToFullUrl(x, baseUrl)
+                                else
+                                    x)
             |> Seq.map(fun x -> match tryGetBodyFromUrl(x) with
                                  | Some y -> (x,y)
-                                 | None -> ("",Unchecked.defaultof<HtmlNode>))
+                                 | None -> ("", Unchecked.defaultof<HtmlNode>))
             |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(fst(x))))
-            |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, x, depth - 1))
+            |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, x, Regex.Match(fst(x), baseHostUrlPattern).Value, depth - 1))
             ) |> Seq.distinct
+
 let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
         seq [sequence1;sequence2]
         |> Seq.concat

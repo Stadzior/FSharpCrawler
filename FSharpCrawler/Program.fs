@@ -57,7 +57,7 @@ let main argv =
         let reachableBodiesWithDepth =
              mergeSeq(reachableBodies,
                  reachableBodies
-                    |> Seq.collect(fun x -> getLinksFromNodeWithDepth(true, x, depth)
+                    |> Seq.collect(fun x -> getLinksFromNodeWithDepth(true, x, fst(x), depth)
                                                 |> Seq.map(fun y -> 
                                                     if Regex.IsMatch(y, relativeUrlPattern) then
                                                        Regex.Match(fst(x), baseHostUrlPattern).Value + y
@@ -75,7 +75,7 @@ let main argv =
 
         let links =
             reachableBodies
-                |> Seq.collect(fun x -> Helpers.getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, depth))
+                |> Seq.collect(fun x -> Helpers.getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, fst(x), depth))
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
