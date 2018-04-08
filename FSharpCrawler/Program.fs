@@ -68,6 +68,9 @@ let main argv =
                                         |> Seq.sortBy(fun x -> snd(x)))
                 |> Seq.toArray
 
+        //let cosineSimilarities = 
+//TBD
+
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
                 words

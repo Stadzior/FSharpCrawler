@@ -71,4 +71,16 @@ let rec getAllWordsFromNodeWithDepth(includeExternal : bool, urlNodeTuple : stri
             |> Seq.map(fun x -> tryGetBodyFromUrl(x))
             |> Seq.filter(fun x -> snd(x).IsSome)
             |> Seq.map(fun x -> (fst(x), snd(x).Value))
-            |> Seq.collect(fun x -> getAllWordsFromNodeWithDepth(includeExternal, x, getNormalizedBaseUrl(fst(x)),depth - 1))
+            |> Seq.collect(fun x -> getAllWordsFromNodeWithDepth(includeExternal, x, getNormalizedBaseUrl(fst(x)), depth - 1))
+
+let seqWithZerosOnDiff(left : seq<string * int>, right : seq<string * int>) =
+     mergeSeq(left, right 
+                        |> Seq.map(fun x -> fst(x), 0)
+                        |> Seq.filter(fun x -> left |> Seq.map(fun y -> fst(y)) |> Seq.contains(fst(x))))
+
+let calculateCosineSimilarity(left : seq<string * int>, right : seq<string * int>) = 
+    Accord.Math.Distance.Cosine(seqWithZerosOnDiff(left, right) 
+                                    |> Seq.map(fun x -> snd(x) |> float) 
+                                    |> Seq.toArray, seqWithZerosOnDiff(right, left) 
+                                                        |> Seq.map(fun x -> snd(x) |> float) 
+                                                        |> Seq.toArray)
