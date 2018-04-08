@@ -53,7 +53,7 @@ let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
         |> Seq.concat
 
 let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, baseUrl : string, depth : int) =
-    (if (depth < 1) then
+    (if depth < 1 then
         getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
     else
         let normalizedLinks = getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
@@ -62,3 +62,13 @@ let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string 
                                                                 |> Seq.filter(fun x -> snd(x).IsSome)
                                                                 |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, (fst(x), snd(x).Value), getNormalizedBaseUrl(fst(x)), depth - 1))))
             |> Seq.distinct
+
+let rec getAllWordsFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, baseUrl : string, depth : int) =
+    if depth < 1 then
+            getAllWordsFromNode(snd(urlNodeTuple))
+    else
+        getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
+            |> Seq.map(fun x -> tryGetBodyFromUrl(x))
+            |> Seq.filter(fun x -> snd(x).IsSome)
+            |> Seq.map(fun x -> (fst(x), snd(x).Value))
+            |> Seq.collect(fun x -> getAllWordsFromNodeWithDepth(includeExternal, x, getNormalizedBaseUrl(fst(x)),depth - 1))

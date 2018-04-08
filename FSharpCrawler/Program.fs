@@ -57,32 +57,30 @@ let main argv =
                 |> Seq.toArray
 
         let links =
-            mergeSeq(reachableBodies |> Seq.map(fun x -> fst(x)), reachableBodies 
-                                                                    |> Seq.collect(fun x -> getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth)))
-
-        let reachableBodiesWithDepth =
-                 links
-                    |> Seq.map(fun x -> tryGetBodyFromUrl(x))
-                    |> Seq.filter(fun x -> snd(x).IsSome)
-                    |> Seq.map(fun x ->
-                                    match snd(x) with
-                                        | Some y -> (fst(x), y)
-                                        | None -> ("", Unchecked.defaultof<HtmlNode>))
+            reachableBodies 
+                |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth))
+            |> Seq.toArray
 
         let words = 
-            reachableBodiesWithDepth
-                |> Seq.map(fun x -> Helpers.getAllWordsFromNode(snd(x)))
-                |> Seq.concat
+            reachableBodies 
+                |> Seq.map(fun x -> x, getAllWordsFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth)
+                                        |> Seq.countBy(fun x -> x)
+                                        |> Seq.sortBy(fun x -> snd(x)))
+                |> Seq.toArray
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
-                for word in words 
-                        |> Seq.countBy(fun x -> x) 
-                        |> Seq.sortBy(fun x -> x) do
-                    Console.WriteLine(word)
+                words
+                    |> Seq.iter (fun x ->
+                            Console.WriteLine("--------------------------------------" + fst(fst(x)) + "--------------------------------------")
+                            for word in snd(x) do
+                                Console.WriteLine(word))
             if tags |> Seq.contains("-a") then
-                for link in links do
-                    Console.WriteLine(link)
+                links
+                    |> Seq.iter (fun x ->
+                            Console.WriteLine("--------------------------------------" + fst(fst(x)) + "--------------------------------------")
+                            for link in snd(x) do
+                                Console.WriteLine(link))
 
         if tags |> Seq.contains("-file") then
             let filePath = 
@@ -93,10 +91,14 @@ let main argv =
             if File.Exists(filePath) then
                 File.Delete(filePath)
             if tags |> Seq.contains("-text") then
-                File.AppendAllLines(filePath, words 
-                    |> Seq.countBy(fun x -> x)
-                    |> Seq.map(fun x -> x.ToString()))
+                words
+                    |> Seq.iter (fun x ->
+                            File.AppendAllLines(filePath, [| "--------------------------------------" + fst(fst(x)) + "--------------------------------------" |])
+                            File.AppendAllLines(filePath, snd(x) |> Seq.map(fun x -> x.ToString())))
             if tags |> Seq.contains("-a") then
-                File.AppendAllLines(filePath, links)
+                links
+                    |> Seq.iter(fun x ->
+                            File.AppendAllLines(filePath, [| "--------------------------------------" + fst(fst(x)) + "--------------------------------------" |])
+                            File.AppendAllLines(filePath, snd(x)))
     
         0 // return an integer exit code
