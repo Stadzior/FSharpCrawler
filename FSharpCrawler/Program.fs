@@ -26,9 +26,9 @@ let main argv =
         Console.WriteLine("No valid urls provided.")
         0
     else
-        let tags = argv |> Seq.filter(fun x -> Regex.IsMatch(x, "\-[\w]*"))    
+        let tags = argv |> Seq.filter(fun x -> Regex.IsMatch(x, "\-[\w]*")) |> Seq.toArray
 
-        let bodies = urls |> Seq.map(fun x -> (x, Helpers.tryGetBodyFromUrl(x)))
+        let bodies = urls |> Seq.map(fun x -> Helpers.tryGetBodyFromUrl(x)) |> Seq.toArray
 
         if bodies |> Seq.exists(fun x -> snd(x).IsNone) then
             Console.WriteLine("Following urls are impossible to reach (incorrect url?) or lacks body tag (not a proper html file?):")
@@ -54,38 +54,20 @@ let main argv =
                 |> Seq.map(fun x -> (fst(x), match snd(x) with
                                                 | Some x -> x
                                                 | None -> Unchecked.defaultof<HtmlNode>))
+                |> Seq.toArray
 
         let links =
-            reachableBodies
-                |> Seq.collect(fun x -> Helpers.getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, fst(x), depth)
-                                            |> Seq.map(fun y -> y.Replace("%20",""))
-                                            |> Seq.map(fun y -> y.Replace(" ", ""))
-                                            |> Seq.map(fun y -> 
-                                                if (y.Contains("?")) then
-                                                    y.Substring(0, y.IndexOf('?'))
-                                                else
-                                                    y)                             
-                                            |> Seq.filter(fun y -> not(String.IsNullOrWhiteSpace(y) || y.Contains("mailto") || y.Contains("#")))
-                                            |> Seq.distinct
-                                            |> Seq.map(fun z -> 
-                                                if Regex.IsMatch(z, relativeUrlPattern) then
-                                                    if (z.StartsWith('/')) then
-                                                        Regex.Match(fst(x), baseHostUrlPattern).Value + z
-                                                    else
-                                                        Regex.Match(fst(x), baseHostUrlPattern).Value + "/" + z
-                                                else
-                                                    z))
-                |> Seq.distinct
-
-        let linkz = links |> Seq.toArray
+            mergeSeq(reachableBodies |> Seq.map(fun x -> fst(x)), reachableBodies 
+                                                                    |> Seq.collect(fun x -> getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth)))
 
         let reachableBodiesWithDepth =
-             mergeSeq(reachableBodies,
                  links
-                    |> Seq.map(fun x -> match tryGetBodyFromUrl(x) with
-                                         | Some y -> (x,y)
-                                         | None -> ("",Unchecked.defaultof<HtmlNode>))
-                    |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(fst(x)))))
+                    |> Seq.map(fun x -> tryGetBodyFromUrl(x))
+                    |> Seq.filter(fun x -> snd(x).IsSome)
+                    |> Seq.map(fun x ->
+                                    match snd(x) with
+                                        | Some y -> (fst(x), y)
+                                        | None -> ("", Unchecked.defaultof<HtmlNode>))
 
         let words = 
             reachableBodiesWithDepth

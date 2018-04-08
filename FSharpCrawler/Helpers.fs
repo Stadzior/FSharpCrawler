@@ -31,37 +31,34 @@ let getLinksFromNode (includeExternal : bool, urlNodeTuple : string * HtmlNode) 
         |> Seq.filter (fun x -> includeExternal || Regex.IsMatch(x, UrlHelpers.relativeUrlPattern) || Regex.Match(fst(urlNodeTuple), UrlHelpers.fullUrlPattern).Value.Equals(Regex.Match(x, UrlHelpers.fullUrlPattern).Value))
         |> Seq.distinct
 
-let tryGetBodyFromUrl(url : string) : HtmlNode option =
+let tryGetBodyFromUrl(url : string) : string * HtmlNode option =
     try
-         HtmlDocument.Load(url).TryGetBody()
+        (url, HtmlDocument.Load(url).TryGetBody())
     with
         | :? WebException as _ex -> 
                 try
-                    HtmlDocument.Load(url.Replace("www.","")).TryGetBody()
+                    (url.Replace("www.",""), HtmlDocument.Load(url.Replace("www.","")).TryGetBody())
                 with
-                    | :? WebException as _ex -> None
-                    | :? UriFormatException as _ex -> None
-        | :? UriFormatException as _ex -> None        
-        | :? NotSupportedException as _ex -> None
-        | :? ArgumentException as _ex -> None
-        | :? FileNotFoundException as _ex -> None
-
-let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, baseUrl : string, depth : int) =
-    (if (depth < 1) then
-        getLinksFromNode(includeExternal, urlNodeTuple)
-    else
-        getLinksFromNode(includeExternal, urlNodeTuple)
-            |> Seq.map(fun x -> if Regex.IsMatch(x, relativeUrlPattern) then
-                                    transformRelativeToFullUrl(x, baseUrl)
-                                else
-                                    x)
-            |> Seq.map(fun x -> match tryGetBodyFromUrl(x) with
-                                 | Some y -> (x,y)
-                                 | None -> ("", Unchecked.defaultof<HtmlNode>))
-            |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(fst(x))))
-            |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, x, Regex.Match(fst(x), baseHostUrlPattern).Value, depth - 1))
-            ) |> Seq.distinct
+                    | :? WebException as _ex -> (url.Replace("www.",""), None)
+                    | :? UriFormatException as _ex -> (url.Replace("www.",""), None)
+        | :? UriFormatException as _ex -> (url, None)        
+        | :? NotSupportedException as _ex -> (url, None)
+        | :? ArgumentException as _ex -> (url, None)
+        | :? FileNotFoundException as _ex -> (url, None)
+        | :? DirectoryNotFoundException as _ex -> (url, None)
+        | :? IOException as _ex -> (url, None)
 
 let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
         seq [sequence1;sequence2]
         |> Seq.concat
+
+let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, baseUrl : string, depth : int) =
+    (if (depth < 1) then
+        getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
+    else
+        let normalizedLinks = getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
+                                |> Seq.map(fun x -> tryGetBodyFromUrl(x))
+        mergeSeq(normalizedLinks |> Seq.map(fun x -> fst(x)), normalizedLinks 
+                                                                |> Seq.filter(fun x -> snd(x).IsSome)
+                                                                |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, (fst(x), snd(x).Value), getNormalizedBaseUrl(fst(x)), depth - 1))))
+            |> Seq.distinct
