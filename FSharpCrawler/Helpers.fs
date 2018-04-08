@@ -30,30 +30,39 @@ let getLinksFromNode (includeExternal : bool, urlNodeTuple : string * HtmlNode) 
         |> Seq.filter (fun x -> includeExternal || Regex.IsMatch(x, UrlHelpers.relativeUrlPattern) || Regex.Match(fst(urlNodeTuple), UrlHelpers.fullUrlPattern).Value.Equals(Regex.Match(x, UrlHelpers.fullUrlPattern).Value))
         |> Seq.distinct
 
-let tryGetBodyFromUrl(url : string) : HtmlNode option =
+let tryGetBodyFromUrl(url : string) : Async<HtmlNode option> =
     try
-        HtmlDocument.Load(url).TryGetBody()
+        async {
+            let! result = HtmlDocument.AsyncLoad(url);
+            return result.TryGetBody();
+        }
     with
         | :? WebException as _ex -> 
                 try
-                    HtmlDocument.Load(url.Replace("www.","")).TryGetBody()
+                    async {
+                        let! result = HtmlDocument.AsyncLoad(url.Replace("www.",""));
+                        return result.TryGetBody();
+                    }
                 with
-                    | :? WebException as _ex -> None
-                    | :? UriFormatException as _ex -> None
-        | :? UriFormatException as _ex -> None        
-        | :? NotSupportedException as _ex -> None
+                    | :? WebException as _ex -> async { return None }
+                    | :? UriFormatException as _ex ->  async { return None }
+        | :? UriFormatException as _ex -> async { return None }    
+        | :? NotSupportedException as _ex ->  async { return None }
 
 let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, depth : int) =
     (if (depth < 1) then
         getLinksFromNode(includeExternal, urlNodeTuple)
     else
         getLinksFromNode(includeExternal, urlNodeTuple)
-            |> Seq.map(fun x -> match tryGetBodyFromUrl(x) with
-                                 | Some y -> (x,y)
-                                 | None -> ("",Unchecked.defaultof<HtmlNode>))
+            |> Seq.map(fun x ->
+                async {
+                    match tryGetBodyFromUrl(x) with
+                                 | Some y -> let! res = (x,y)
+                                 | None -> let! res = ("",Unchecked.defaultof<HtmlNode>)
+                })
             |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(fst(x))))
             |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, x, depth - 1))
-            ) |> Seq.distinct
+    ) |> Seq.distinct
 let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
         seq [sequence1;sequence2]
         |> Seq.concat
