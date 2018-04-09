@@ -79,6 +79,9 @@ let seqWithZerosOnDiff(left : seq<string * int>, right : seq<string * int>) =
                         |> Seq.filter(fun x -> left |> Seq.map(fun y -> fst(y)) |> Seq.contains(fst(x))))
 
 let calculateCosineSimilarity(left : seq<string * int>, right : seq<string * int>) = 
+    let hue = left |> Seq.toArray
+    let hia = right |> Seq.toArray
+
     Accord.Math.Distance.Cosine(seqWithZerosOnDiff(left, right) 
                                     |> Seq.map(fun x -> snd(x) |> float) 
                                     |> Seq.toArray, seqWithZerosOnDiff(right, left) 

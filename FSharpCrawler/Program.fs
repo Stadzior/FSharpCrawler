@@ -68,8 +68,15 @@ let main argv =
                                         |> Seq.sortBy(fun x -> snd(x)))
                 |> Seq.toArray
 
-        //let cosineSimilarities = 
-//TBD
+        let cosineSimilarities = 
+            seq { for body in reachableBodies do
+                    for anotherBody in reachableBodies |> Seq.filter(fun x -> not(x.Equals(body))) do
+                        yield body,anotherBody
+            } 
+            |> Seq.map(fun x -> "Cosine similiarity of: " + fst(fst(x)) + "," + fst(snd(x)), calculateCosineSimilarity(snd(words 
+                                                                                                                            |> Seq.find(fun y -> fst(fst(y)).Equals(fst(fst(x))))), snd(words 
+                                                                                                                                                                                        |> Seq.find(fun y -> fst(fst(y)).Equals(fst(snd(x)))))))
+            |> Seq.toArray
 
         if tags |> Seq.contains("-console") then
             if tags |> Seq.contains("-text") then
@@ -84,6 +91,9 @@ let main argv =
                             Console.WriteLine("--------------------------------------" + fst(fst(x)) + "--------------------------------------")
                             for link in snd(x) do
                                 Console.WriteLine(link))
+            if tags |> Seq.contains("-cos") then
+                cosineSimilarities
+                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))
 
         if tags |> Seq.contains("-file") then
             let filePath = 
@@ -103,5 +113,7 @@ let main argv =
                     |> Seq.iter(fun x ->
                             File.AppendAllLines(filePath, [| "--------------------------------------" + fst(fst(x)) + "--------------------------------------" |])
                             File.AppendAllLines(filePath, snd(x)))
-    
+            if tags |> Seq.contains("-cos") then
+                cosineSimilarities
+                    |> Seq.iter(fun x -> File.AppendAllLines(filePath, cosineSimilarities |> Seq.map(fun x -> x.ToString())))
         0 // return an integer exit code
