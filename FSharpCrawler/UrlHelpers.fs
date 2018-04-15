@@ -12,20 +12,26 @@ let relativeUrlPattern = "(?i)^([\/]?[\w\-\,\„\”\!]+)+(\.[\w]{1,4})?[\/]?$"
 
 let fullUrlPattern = "(?i)^((https|http)://)?(www\.)?\w[\w\-\,\„\”\!]*(\.\w([\-\w\,\„\”\!]*\w)*)*\.\w{2,3}[\/]?$"
 
-let normalizeUrl (inputUrl : string) =
-    let urlTemp = Uri.TryCreate(inputUrl, UriKind.Absolute)
-    let url = if not(fst(urlTemp)) then
-                    Uri.TryCreate(inputUrl.Replace("www.",""), UriKind.Absolute)
-                else
-                    urlTemp
+let softFullUrlPattern = "(?i)((https|http)://)?(www\.)?\w[\w\-\,\„\”\!]*(\.\w([\-\w\,\„\”\!]*\w)*)*\.\w{2,3}[\/]?"
 
+let normalizeUrl (inputUrl : string) =
     let uri =
-        match url with
+        match Uri.TryCreate(inputUrl, UriKind.Absolute) with
         | true, str -> Some str
-        | _ ->  let url'' = Uri.TryCreate("http://" + inputUrl, UriKind.Absolute)
-                match url'' with
+        | _ ->  let url' = Uri.TryCreate("http://" + inputUrl, UriKind.Absolute)
+                match url' with
                 | true, str -> Some str
-                | _ -> None
+                | _ -> let url'' = Uri.TryCreate(inputUrl.Replace("www.",""), UriKind.Absolute)
+                       match url'' with
+                       | true, str -> Some str
+                       | _ -> let url''' = if inputUrl.EndsWith("/") then
+                                                Uri.TryCreate(inputUrl.Substring(0,inputUrl.Length-1).Replace("www",""), UriKind.Absolute)
+                                            else
+                                                Uri.TryCreate("nope", UriKind.Absolute)
+                              match url''' with
+                              | true, str -> Some str
+                              | _ -> None
+
     match uri with
     | Some x -> let host = x.Host.Replace("www.","")
                 let path = x.AbsolutePath
@@ -35,7 +41,7 @@ let normalizeUrl (inputUrl : string) =
                 match m with
                 | true -> "http://" + host + path
                 | false -> "http://www." + host + path
-    | None -> ""
+    | None -> raise(UriFormatException(inputUrl))
 
 let transformRelativeToFullUrl (inputUrl : string, baseUrl : string) =
     if (inputUrl.StartsWith('/') || baseUrl.EndsWith('/')) then

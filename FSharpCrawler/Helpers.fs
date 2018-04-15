@@ -28,7 +28,8 @@ let getLinksFromNode (includeExternal : bool, urlNodeTuple : string * HtmlNode) 
         |> Seq.choose(fun x -> 
             x.TryGetAttribute("href")
                 |> Option.map(fun x -> x.Value()))
-        |> Seq.filter (fun x -> includeExternal || Regex.IsMatch(x, UrlHelpers.relativeUrlPattern) || Regex.Match(fst(urlNodeTuple), UrlHelpers.fullUrlPattern).Value.Equals(Regex.Match(x, UrlHelpers.fullUrlPattern).Value))
+        |> Seq.filter (fun x -> includeExternal || Regex.IsMatch(x, UrlHelpers.relativeUrlPattern) ||
+                                                                            Regex.Match(fst(urlNodeTuple), UrlHelpers.fullUrlPattern).Value.Equals(Regex.Match(x, UrlHelpers.softFullUrlPattern).Value))
         |> Seq.distinct
 
 let tryGetBodyFromUrl(url : string) : string * HtmlNode option =
@@ -49,8 +50,8 @@ let tryGetBodyFromUrl(url : string) : string * HtmlNode option =
         | :? IOException as _ex -> (url, None)
 
 let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
-        seq [sequence1;sequence2]
-        |> Seq.concat
+    seq [sequence1;sequence2]
+    |> Seq.concat
 
 let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string * HtmlNode, baseUrl : string, depth : int) =
     (if depth < 1 then
@@ -58,6 +59,7 @@ let rec getLinksFromNodeWithDepth(includeExternal : bool, urlNodeTuple : string 
     else
         let normalizedLinks = getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
                                 |> Seq.map(fun x -> tryGetBodyFromUrl(x))
+                                |> Seq.toArray
         mergeSeq(normalizedLinks |> Seq.map(fun x -> fst(x)), normalizedLinks 
                                                                 |> Seq.filter(fun x -> snd(x).IsSome)
                                                                 |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, (fst(x), snd(x).Value), getNormalizedBaseUrl(fst(x)), depth - 1))))
@@ -74,16 +76,18 @@ let rec getAllWordsFromNodeWithDepth(includeExternal : bool, urlNodeTuple : stri
             |> Seq.collect(fun x -> getAllWordsFromNodeWithDepth(includeExternal, x, getNormalizedBaseUrl(fst(x)), depth - 1))
 
 let seqWithZerosOnDiff(left : seq<string * int>, right : seq<string * int>) =
-     mergeSeq(left, right 
-                        |> Seq.map(fun x -> fst(x), 0)
-                        |> Seq.filter(fun x -> left |> Seq.map(fun y -> fst(y)) |> Seq.contains(fst(x))))
+    mergeSeq(left, right 
+                    |> Seq.filter(fun x -> not(left |> Seq.exists(fun y -> fst(y).Equals(fst(x)))))
+                    |> Seq.map(fun x -> fst(x), 0))
 
 let calculateCosineSimilarity(left : seq<string * int>, right : seq<string * int>) = 
-    let hue = left |> Seq.toArray
-    let hia = right |> Seq.toArray
-
-    Accord.Math.Distance.Cosine(seqWithZerosOnDiff(left, right) 
+    let leftWithZeros = seqWithZerosOnDiff(left, right) 
+                                    |> Seq.sortBy(fun x -> fst(x))
                                     |> Seq.map(fun x -> snd(x) |> float) 
-                                    |> Seq.toArray, seqWithZerosOnDiff(right, left) 
-                                                        |> Seq.map(fun x -> snd(x) |> float) 
-                                                        |> Seq.toArray)
+                                    |> Seq.toArray
+    let rightWithZeros = seqWithZerosOnDiff(right, left)
+                                    |> Seq.sortBy(fun x -> fst(x))
+                                    |> Seq.map(fun x -> snd(x) |> float) 
+                                    |> Seq.toArray
+
+    Accord.Math.Distance.Cosine(leftWithZeros, rightWithZeros)
