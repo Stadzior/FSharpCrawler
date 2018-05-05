@@ -19,4 +19,8 @@ No need for "http", "https", "www" prefixes
 -graph - draw a website graph
 -pr - page rank
 
-Create a simple page with five buttons
+## #4 ##
+Search engine
+a) Index 100 pages
+b) Simple page to run a search
+c) Return records sorted by page rank
