@@ -24,3 +24,6 @@ Search engine
 a) Index 100 pages
 b) Simple page to run a search
 c) Return records sorted by page rank
+
+## #5 ##
+Sentiment analisys on StackExchange Data dump.
