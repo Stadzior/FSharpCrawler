@@ -6,6 +6,7 @@ open System.Net
 open System.Text.RegularExpressions
 open UrlHelpers
 open System.IO
+open System.Drawing
 
 // e.g. aaaa-aaa'a
 let wordPattern = "(^[\w]$)|(^[\w](\w|\-|\')*[\w]$)"
@@ -85,9 +86,38 @@ let calculateCosineSimilarity(left : seq<string * int>, right : seq<string * int
                                     |> Seq.sortBy(fun x -> fst(x))
                                     |> Seq.map(fun x -> snd(x) |> float) 
                                     |> Seq.toArray
+
     let rightWithZeros = seqWithZerosOnDiff(right, left)
                                     |> Seq.sortBy(fun x -> fst(x))
                                     |> Seq.map(fun x -> snd(x) |> float) 
                                     |> Seq.toArray
+    
+    System.Math.Round(1.0 - Accord.Math.Distance.Cosine(leftWithZeros, rightWithZeros), 5)
 
-    Accord.Math.Distance.Cosine(leftWithZeros, rightWithZeros)
+//let generateSiteMap()
+
+let drawSiteMap() = new Bitmap(100,100)
+
+let rec getNetSize(url : string, depth : int) = 
+    if (depth > 0) then
+        let subnetsSizes = getLinksFromNode(true, tryGetBodyFromUrl(url))
+                                |> Seq.map(fun x -> Regex.Match(x, UrlHelpers.softFullUrlPattern).Value)
+                                |> Seq.distinct
+                                |> Seq.filter(fun x -> not(Regex.Match(url, UrlHelpers.fullUrlPattern).Value.Equals(x)))
+                                |> Seq.map(fun x -> getNetSize(x, depth - 1))
+        let subnetsSum = subnetsSizes |> Seq.sum
+        subnetsSum + 1
+    else
+        1
+
+let rec getPageRank(url : string, alpha : double, depth : int) = 
+    let minorPageRanks = getLinksFromNode(true, tryGetBodyFromUrl(url))
+                            |> Seq.map(fun x -> Regex.Match(x, UrlHelpers.softFullUrlPattern).Value)
+                            |> Seq.distinct
+                            |> Seq.filter(fun x -> not(Regex.Match(url, UrlHelpers.fullUrlPattern).Value.Equals(x)))
+                            |> Seq.map(fun x -> getPageRank(x, alpha, depth - 1))
+                            |> Seq.toArray
+    let netSize = 1 + minorPageRanks.Length + 
+    (1.0 - alpha)/
+
+    

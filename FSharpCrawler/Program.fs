@@ -1,14 +1,10 @@
-﻿// Learn more about F# at http://fsharp.org
-
-open System
+﻿open System
 open FSharp.Data
 open System.IO
 open System.Text.RegularExpressions
 open ActivePatterns
 open Helpers
 open UrlHelpers
-
-//let countWords =words |> Seq.countBy(fun x -> x)
 
 [<EntryPoint>]
 let main argv =     
@@ -56,7 +52,13 @@ let main argv =
                                                 | Some x -> x
                                                 | None -> Unchecked.defaultof<HtmlNode>))
                 |> Seq.sortBy(fun x -> fst(x)) 
-                |> Seq.toArray
+                |> Seq.toArray     
+
+        let pageRanks =
+            reachableBodies 
+            |> Seq.map(fun x -> "Page rank of " + fst(x) + ": " + NetworkX.PageRankChecker.CheckUrl(fst(x)).ToString())
+            |> Seq.toArray
+
 
         let links =
             reachableBodies 
@@ -72,20 +74,13 @@ let main argv =
                                         |> Seq.toArray)
                 |> Seq.toArray
 
-        let reachableNotPermutatedYetBodies(body : string * HtmlNode) = 
-            reachableBodies 
-                |> Seq.filter(fun x -> (reachableBodies |> Seq.findIndex(fun y -> y.Equals(x))) > (reachableBodies |> Seq.findIndex(fun y -> y.Equals(body)))) 
-
-        let perms = 
-            seq {
-                for body in reachableBodies do
-                    for anotherBody in reachableNotPermutatedYetBodies(body) do
-                        yield body,anotherBody
-
-            } |> Seq.toArray           
-
         let cosineSimilarities = 
-            perms 
+                seq {
+                for body in reachableBodies do
+                    for anotherBody in reachableBodies do
+                        yield body,anotherBody
+                } 
+                |> Seq.toArray    
                 |> Seq.map(fun x -> "Cosine similiarity of " + fst(fst(x)) + " and " + fst(snd(x)), calculateCosineSimilarity(snd(words 
                                                                                                                             |> Seq.find(fun y -> fst(fst(y)).Equals(fst(fst(x))))), snd(words 
                                                                                                                                                                                         |> Seq.find(fun y -> fst(fst(y)).Equals(fst(snd(x)))))))
@@ -106,7 +101,10 @@ let main argv =
                                 Console.WriteLine(link))
             if tags |> Seq.contains("-cos") then
                 cosineSimilarities
-                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))
+                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))            
+            if tags |> Seq.contains("-pr") then
+                pageRanks
+                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))        
 
         if tags |> Seq.contains("-file") then
             let filePath = 
@@ -128,7 +126,10 @@ let main argv =
                             File.AppendAllLines(filePath, snd(x)))
             if tags |> Seq.contains("-cos") then
                 File.AppendAllLines(filePath, cosineSimilarities |> Seq.map(fun x -> x.ToString()))
-
+            if tags |> Seq.contains("-pr") then
+                File.AppendAllLines(filePath, pageRanks |> Seq.map(fun x -> x.ToString()))
+        //if tags |> Seq.contains("-graph") then
+            //drawSiteMap(generateSiteMap()).Save(Path.Combine(__SOURCE_DIRECTORY__, "graph.jpeg"), System.Drawing.Imaging.ImageFormat.Png)   
         stopWatch.Stop()
         if tags |> Seq.contains("-console") then
             Console.WriteLine("Execution time: " + stopWatch.Elapsed.Seconds.ToString() + "s")
@@ -139,4 +140,6 @@ let main argv =
                         __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
                 else "" 
             File.AppendAllLines(filePath, ["Execution time: " + stopWatch.Elapsed.Seconds.ToString() + "s"])
+
+        Console.ReadKey()
         0 // return an integer exit code

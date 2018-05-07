@@ -15,6 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Accord" Version="3.8.0" />
     <PackageReference Include="Accord.Extensions.Math" Version="3.0.1" />
+    <PackageReference Include="CoreCompat.System.Drawing" Version="1.0.0-beta006" />
     <PackageReference Include="FSharp.Data" Version="2.4.5" />
   </ItemGroup>
 
