@@ -260,4 +260,4 @@ paket-files/
 __pycache__/
 *.pyc
 /FSharpCrawler/*.txt
-/FSharpCrawler/graph.jpeg
+/FSharpCrawler/*.jpeg

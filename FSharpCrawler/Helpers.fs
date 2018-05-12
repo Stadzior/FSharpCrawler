@@ -69,6 +69,13 @@ let tryGetBodyFromUrl(url : string) : string * HtmlNode option =
                 with
                     | :? WebException as _ex -> (url.Replace("www.",""), None)
                     | :? UriFormatException as _ex -> (url.Replace("www.",""), None)
+        | :? AggregateException as _ex ->        
+                try
+                    tryGetBodyFromUrlAsyncWithTimeout(url.Replace("www.",""), 3000)
+                with
+                    | :? WebException as _ex -> (url.Replace("www.",""), None)
+                    | :? UriFormatException as _ex -> (url.Replace("www.",""), None)
+                    | :? AggregateException as _ex -> (url.Replace("www.",""), None)
         | :? UriFormatException as _ex -> (url, None)        
         | :? NotSupportedException as _ex -> (url, None)
         | :? ArgumentException as _ex -> (url, None)
@@ -121,8 +128,6 @@ let calculateCosineSimilarity(left : seq<string * int>, right : seq<string * int
     
     System.Math.Round(1.0 - Accord.Math.Distance.Cosine(leftWithZeros, rightWithZeros), 5)
 
-let drawSiteMap() = new Bitmap(100,100)
-
 let rec getNetMap(startingPoint : string * HtmlNode, depth : int) =
     (if depth < 1 then
         [|(fst(startingPoint), Seq.empty<string>)|]
@@ -147,6 +152,27 @@ let rec getNetMap(startingPoint : string * HtmlNode, depth : int) =
                                         |> Seq.collect(fun y -> snd(y))
                                         |> Seq.distinct)))
 
+
+
+let drawSiteMap(map : (string * seq<string>)[], sizeX : int , sizeY : int, pointSize : int) = 
+    let rnd = System.Random()
+    let image = new Bitmap(sizeX, sizeY)
+    let graphics = System.Drawing.Graphics.FromImage(image)
+    let aliceBluePen = new Pen(Color.AliceBlue, float32(3))
+    let redPen = new Pen(Color.Red, float32(3))
+    let sitePoints = map |> Array.distinct |> Array.map(fun x -> (fst(x), (rnd.Next(pointSize, sizeX-pointSize), (rnd.Next(pointSize, sizeY-pointSize)))))
+    for sitePoint in sitePoints do
+        graphics.DrawEllipse(aliceBluePen, fst(snd(sitePoint)), snd(snd(sitePoint)), pointSize, pointSize)
+        graphics.DrawString(fst(sitePoint), new Font("Arial", float32(16)), new SolidBrush(Color.AliceBlue), float32(fst(snd(sitePoint))), float32(snd(snd(sitePoint))))
+        let links = snd(map |> Array.find(fun x -> fst(x).Equals(fst(sitePoint)))) |> Seq.toArray
+        let linkPoints = sitePoints |> Array.filter(fun x -> links |> Array.contains(fst(x)))
+        for linkPoint in linkPoints do
+            if fst(linkPoint).Equals(fst(sitePoint)) then
+                graphics.DrawEllipse(redPen, fst(snd(sitePoint)) + (pointSize/4), snd(snd(sitePoint)) + (pointSize/4), (pointSize/4), (pointSize/4))
+            else
+                graphics.DrawLine(aliceBluePen, fst(snd(sitePoint)) + (pointSize/2), snd(snd(sitePoint)) + (pointSize/2), fst(snd(linkPoint)) + (pointSize/2), snd(snd(linkPoint)) + (pointSize/2))
+    image
+    
 //let rec getNetSize(string url, depth : int) =
 //    if depth < 1 then
 //        1
