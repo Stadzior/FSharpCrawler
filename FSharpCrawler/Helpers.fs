@@ -7,6 +7,8 @@ open System.Text.RegularExpressions
 open UrlHelpers
 open System.IO
 open System.Drawing
+open System.Threading.Tasks
+open System.Threading
 
 // e.g. aaaa-aaa'a
 let wordPattern = "(^[\w]$)|(^[\w](\w|\-|\')*[\w]$)"
@@ -39,13 +41,31 @@ let getLinksFromNode (includeExternal : bool, includeInternal : bool, urlNodeTup
                     not(Regex.Match(fst(urlNodeTuple), UrlHelpers.fullUrlPattern).Value.Equals(Regex.Match(x, UrlHelpers.softFullUrlPattern).Value))))
         |> Seq.distinct
 
+type Microsoft.FSharp.Control.Async with
+    static member AwaitTask (t : Task<'T>, timeout : int) =
+        async {
+            use cts = new CancellationTokenSource()
+            use timer = Task.Delay (timeout, cts.Token)
+            let! completed = Async.AwaitTask <| Task.WhenAny(t, timer)
+            if completed = (t :> Task) then
+                cts.Cancel ()
+                let! result = Async.AwaitTask t
+                return Some result
+            else return None
+        }
+
+let tryGetBodyFromUrlAsyncWithTimeout(url : string, timeout : int) : string * HtmlNode option =
+     (url, match (Async.AwaitTask(HtmlDocument.AsyncLoad(url) |> Async.StartAsTask, timeout) |> Async.RunSynchronously) with                
+                | Some x -> x.TryGetBody()
+                | _ -> None)
+
 let tryGetBodyFromUrl(url : string) : string * HtmlNode option =
     try
-        (url, HtmlDocument.Load(url).TryGetBody())
+        tryGetBodyFromUrlAsyncWithTimeout(url, 3000)
     with
         | :? WebException as _ex -> 
                 try
-                    (url.Replace("www.",""), HtmlDocument.Load(url.Replace("www.","")).TryGetBody())
+                    tryGetBodyFromUrlAsyncWithTimeout(url.Replace("www.",""), 3000)
                 with
                     | :? WebException as _ex -> (url.Replace("www.",""), None)
                     | :? UriFormatException as _ex -> (url.Replace("www.",""), None)
@@ -55,6 +75,7 @@ let tryGetBodyFromUrl(url : string) : string * HtmlNode option =
         | :? FileNotFoundException as _ex -> (url, None)
         | :? DirectoryNotFoundException as _ex -> (url, None)
         | :? IOException as _ex -> (url, None)
+        | :? CookieException as _ex -> (url, None)
 
 let mergeSeq<'T>(sequence1 : seq<'T>, sequence2 : seq<'T>) =
     seq [sequence1;sequence2]
@@ -101,6 +122,30 @@ let calculateCosineSimilarity(left : seq<string * int>, right : seq<string * int
     System.Math.Round(1.0 - Accord.Math.Distance.Cosine(leftWithZeros, rightWithZeros), 5)
 
 let drawSiteMap() = new Bitmap(100,100)
+
+let rec getNetMap(startingPoint : string * HtmlNode, depth : int) =
+    (if depth < 1 then
+        [|(fst(startingPoint), Seq.empty<string>)|]
+    else
+        let normalizedLinks = getExplorableUrls(getLinksFromNode(true, false, startingPoint), getNormalizedBaseUrl(fst(startingPoint)))
+                                |> Seq.map(fun x -> Regex.Match(x, UrlHelpers.softFullUrlPattern).Value)
+                                |> Seq.distinct
+                                |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(x) || Regex.Match(fst(startingPoint), UrlHelpers.fullUrlPattern).Value.Equals(x)))
+                                |> Seq.map(fun x -> tryGetBodyFromUrl(x))
+                                |> Seq.filter(fun x -> snd(x).IsSome)
+                                |> Seq.map(fun x -> (fst(x), match snd(x) with
+                                                        | Some x -> x
+                                                        | None -> Unchecked.defaultof<HtmlNode>))
+                                |> Seq.toArray
+        let subNetMaps = [|[|(fst(startingPoint), normalizedLinks |> Seq.map(fun x -> fst(x)))|]; normalizedLinks |> Array.collect(fun x -> getNetMap(x, depth - 1))|] 
+                            |> Array.collect(fun x -> x) 
+        subNetMaps
+            |> Array.map(fun x -> fst(x))
+            |> Array.distinct
+            |> Array.map(fun x -> (x, subNetMaps 
+                                        |> Seq.filter(fun y -> fst(y).Equals(x))
+                                        |> Seq.collect(fun y -> snd(y))
+                                        |> Seq.distinct)))
 
 //let rec getNetSize(string url, depth : int) =
 //    if depth < 1 then
