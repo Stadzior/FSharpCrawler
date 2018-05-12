@@ -54,15 +54,14 @@ let main argv =
                 |> Seq.sortBy(fun x -> fst(x)) 
                 |> Seq.toArray     
 
-        let pageRanks =
-            reachableBodies 
-            |> Seq.map(fun x -> "Page rank of " + fst(x) + ": " + NetworkX.PageRankChecker.CheckUrl(fst(x)).ToString())
-            |> Seq.toArray
+        //let pageRanks =
+        //    reachableBodies 
+        //    |> Seq.toArray
 
 
         let links =
             reachableBodies 
-                |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth)
+                |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
                                             |> Seq.toArray)
             |> Seq.toArray
 
