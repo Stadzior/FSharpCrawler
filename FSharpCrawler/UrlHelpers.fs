@@ -60,7 +60,7 @@ let getExplorableUrls (urls : seq<string>, baseUrl : string) =
                                         x.Substring(0, x.IndexOf('?'))
                                     else
                                         x)                             
-                                |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(x) || x.Contains("mailto") || x.Contains("#") || x.EndsWith(".pdf")))
+                                |> Seq.filter(fun x -> not(String.IsNullOrWhiteSpace(x) || x.Contains("mailto") || x.Contains("#") || x.EndsWith(".pdf") || x.EndsWith(".jpg")))
                                 |> Seq.map(fun x -> 
                                     if Regex.IsMatch(x, relativeUrlPattern) then
                                         transformRelativeToFullUrl(x, baseUrl)

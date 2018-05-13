@@ -172,6 +172,16 @@ let drawSiteMap(map : (string * seq<string>)[], sizeX : int , sizeY : int, point
             else
                 graphics.DrawLine(aliceBluePen, fst(snd(sitePoint)) + (pointSize/2), snd(snd(sitePoint)) + (pointSize/2), fst(snd(linkPoint)) + (pointSize/2), snd(snd(linkPoint)) + (pointSize/2))
     image
+
+let getFilePath(tags : string[], argv: string[]) = 
+    let filePath = 
+        if tags |> Seq.contains("-file") then
+                let fileAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
+                __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
+        else "" 
+    if File.Exists(filePath) then
+        File.Delete(filePath)
+    filePath
     
 //let rec getNetSize(string url, depth : int) =
 //    if depth < 1 then

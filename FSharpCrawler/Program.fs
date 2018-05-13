@@ -53,78 +53,86 @@ let main argv =
                                                 | None -> Unchecked.defaultof<HtmlNode>))
                 |> Seq.sortBy(fun x -> fst(x)) 
                 |> Seq.toArray     
-        
-        let links =
-            reachableBodies 
-                |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
-                                            |> Seq.toArray)
-            |> Seq.toArray
 
-        let words = 
-            reachableBodies 
-                |> Seq.map(fun x -> x, getAllWordsFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth)
-                                        |> Seq.countBy(fun x -> x)
-                                        |> Seq.sortBy(fun x -> snd(x))
-                                        |> Seq.toArray)
+
+        if tags |> Seq.contains("-a") then
+            let links =
+                reachableBodies 
+                    |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
+                                                |> Seq.toArray)
                 |> Seq.toArray
-
-        let cosineSimilarities = 
-                seq {
-                for body in reachableBodies do
-                    for anotherBody in reachableBodies do
-                        yield body,anotherBody
-                } 
-                |> Seq.toArray    
-                |> Seq.map(fun x -> "Cosine similiarity of " + fst(fst(x)) + " and " + fst(snd(x)), calculateCosineSimilarity(snd(words 
-                                                                                                                            |> Seq.find(fun y -> fst(fst(y)).Equals(fst(fst(x))))), snd(words 
-                                                                                                                                                                                        |> Seq.find(fun y -> fst(fst(y)).Equals(fst(snd(x)))))))
-                |> Seq.toArray
-
-        if tags |> Seq.contains("-console") then
-            if tags |> Seq.contains("-text") then
-                words
-                    |> Seq.iter (fun x ->
-                            Console.WriteLine("--------------------------------------" + fst(fst(x)) + "--------------------------------------")
-                            for word in snd(x) do
-                                Console.WriteLine(word))
-            if tags |> Seq.contains("-a") then
+            if tags |> Seq.contains("-console") then
                 links
                     |> Seq.iter (fun x ->
                             Console.WriteLine("--------------------------------------" + fst(fst(x)) + "--------------------------------------")
                             for link in snd(x) do
                                 Console.WriteLine(link))
-            if tags |> Seq.contains("-cos") then
-                cosineSimilarities
-                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))            
-            //if tags |> Seq.contains("-pr") then
-            //    pageRanks
-            //        |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))        
-
-        if tags |> Seq.contains("-file") then
-            let filePath = 
-                if tags |> Seq.contains("-file") then
-                        let fileAttributeIndex = argv |> Seq.findIndex(fun x -> String.Equals(x, "-file"))
-                        __SOURCE_DIRECTORY__ + "\\" + argv.[fileAttributeIndex + 1]
-                else "" 
-            if File.Exists(filePath) then
-                File.Delete(filePath)
-            if tags |> Seq.contains("-text") then
-                words
-                    |> Seq.iter (fun x ->
-                            File.AppendAllLines(filePath, [| "--------------------------------------" + fst(fst(x)) + "--------------------------------------" |])
-                            File.AppendAllLines(filePath, snd(x) |> Seq.map(fun x -> x.ToString())))
-            if tags |> Seq.contains("-a") then
+            if tags |> Seq.contains("-file") then
+                let filePath = getFilePath(tags, argv)
                 links
                     |> Seq.iter(fun x ->
                             File.AppendAllLines(filePath, [| "--------------------------------------" + fst(fst(x)) + "--------------------------------------" |])
                             File.AppendAllLines(filePath, snd(x)))
+
+        if tags |> Seq.contains("-text") || tags |> Seq.contains("-cos") then
+            let words = 
+                reachableBodies 
+                    |> Seq.map(fun x -> x, getAllWordsFromNodeWithDepth(tags |> Seq.contains("-inclext"), x, getNormalizedBaseUrl(fst(x)), depth)
+                                            |> Seq.countBy(fun x -> x)
+                                            |> Seq.sortBy(fun x -> snd(x))
+                                            |> Seq.toArray)
+                    |> Seq.toArray
+
+            if tags |> Seq.contains("-text") then
+                if tags |> Seq.contains("-console") then
+                    words
+                        |> Seq.iter (fun x ->
+                                Console.WriteLine("--------------------------------------" + fst(fst(x)) + "--------------------------------------")
+                                for word in snd(x) do
+                                    Console.WriteLine(word))
+                if tags |> Seq.contains("-file") then
+                    let filePath = getFilePath(tags, argv)
+                    words
+                        |> Seq.iter (fun x ->
+                                File.AppendAllLines(filePath, [| "--------------------------------------" + fst(fst(x)) + "--------------------------------------" |])
+                                File.AppendAllLines(filePath, snd(x) |> Seq.map(fun x -> x.ToString())))
+
             if tags |> Seq.contains("-cos") then
-                File.AppendAllLines(filePath, cosineSimilarities |> Seq.map(fun x -> x.ToString()))
-            //if tags |> Seq.contains("-pr") then
-            //    File.AppendAllLines(filePath, pageRanks |> Seq.map(fun x -> x.ToString()))
+                let cosineSimilarities = 
+                        seq {
+                            for body in reachableBodies do
+                                for anotherBody in reachableBodies do
+                                    yield body,anotherBody
+                        } 
+                        |> Seq.toArray    
+                        |> Seq.map(fun x -> "Cosine similiarity of " + fst(fst(x)) + " and " + fst(snd(x)), calculateCosineSimilarity(snd(words 
+                                                                                                                                    |> Seq.find(fun y -> fst(fst(y)).Equals(fst(fst(x))))), snd(words 
+                                                                                                                                                                                                |> Seq.find(fun y -> fst(fst(y)).Equals(fst(snd(x)))))))
+                        |> Seq.toArray
+                if tags |> Seq.contains("-console") then
+                    cosineSimilarities
+                        |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))  
+                if tags |> Seq.contains("-file") then
+                    let filePath = getFilePath(tags, argv)
+                    File.AppendAllLines(filePath, cosineSimilarities |> Seq.map(fun x -> x.ToString()))
+            
+        if tags |> Seq.contains("-pr") then
+            let pageRanks =
+                reachableBodies 
+                    |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
+                                                |> Seq.toArray)
+                |> Seq.toArray
+            if tags |> Seq.contains("-console") then
+                pageRanks
+                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))  
+            if tags |> Seq.contains("-file") then
+                let filePath = getFilePath(tags, argv)
+                File.AppendAllLines(filePath, pageRanks |> Seq.map(fun x -> x.ToString()))
+
         if tags |> Seq.contains("-graph") then
             reachableBodies
-                |> Array.iter(fun x -> drawSiteMap(getNetMap(x, depth), 1000, 1000, 100).Save(Path.Combine(__SOURCE_DIRECTORY__, "graph_" + fst(x).Replace("/","").Replace(":","") + ".jpeg"), System.Drawing.Imaging.ImageFormat.Png))
+                |> Array.iter(fun x -> drawSiteMap(getNetMap(x, depth), 2000, 2000, 100).Save(Path.Combine(__SOURCE_DIRECTORY__, "graph_" + fst(x).Replace("/","").Replace(":","") + ".jpeg"), System.Drawing.Imaging.ImageFormat.Png))
+
         stopWatch.Stop()
         if tags |> Seq.contains("-console") then
             Console.WriteLine("Execution time: " + stopWatch.Elapsed.Seconds.ToString() + "s")
