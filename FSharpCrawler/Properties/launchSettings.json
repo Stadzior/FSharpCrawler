@@ -2,7 +2,7 @@
   "profiles": {
     "FSharpCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "-url twitter.com -console -depth 1 -file testx.txt -pr -inclext -graph"
+      "commandLineArgs": "-url twitter.com,ekobiobud.pl,pduch.kis.p.lodz.pl -console -depth 1 -file testx.txt -pr -inclext -graph"
     }
   }
 }
