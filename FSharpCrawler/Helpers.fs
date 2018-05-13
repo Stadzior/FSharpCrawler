@@ -183,30 +183,3 @@ let getFilePath(tags : string[], argv: string[]) =
         File.Delete(filePath)
     filePath
     
-//let rec getNetSize(string url, depth : int) =
-//    if depth < 1 then
-//        1
-//    else
-//        getExplorableUrls
-
-//let rec getPageRankNumberOfLinksTuple(string url, alpha : double, netSize : int, depth : int) = 
-//    (if depth < 1 then
-//        getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
-//    else
-//        let normalizedLinks = getExplorableUrls(getLinksFromNode(includeExternal, urlNodeTuple), baseUrl)
-//                                |> Seq.map(fun x -> tryGetBodyFromUrl(x))
-//                                |> Seq.toArray
-//        mergeSeq(normalizedLinks |> Seq.map(fun x -> fst(x)), normalizedLinks 
-//                                                                |> Seq.filter(fun x -> snd(x).IsSome)
-//                                                                |> Seq.collect(fun x -> getLinksFromNodeWithDepth(includeExternal, (fst(x), snd(x).Value), getNormalizedBaseUrl(fst(x)), depth - 1))))
-//            |> Seq.distinct
-//    let minorPageRanks = links
-//                            |> Seq.map(fun x -> Regex.Match(x, UrlHelpers.softFullUrlPattern).Value)
-//                            |> Seq.distinct
-//                            |> Seq.filter(fun x -> not(Regex.Match(url, UrlHelpers.fullUrlPattern).Value.Equals(x)))
-//                            |> Seq.map(fun x -> getPageRankNumberOfLinksTuple(x, alpha, depth - 1))
-//                            |> Seq.toArray
-
-//    ((1.0 - alpha)/netSize)*(alpha*(minorPageRanks |> Array.map(fun x -> fst(x)/snd(x)) |> Array.sum))
-
-    

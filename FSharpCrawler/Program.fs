@@ -123,12 +123,12 @@ let main argv =
             if tags |> Seq.contains("-pr") then
                 let pageRanks =
                     reachableBodies 
-                        |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
-                                                    |> Seq.toArray)
+                        |> Seq.map(fun x -> (fst(x), getPageRank(fst(x), snd(netMaps |> Array.find(fun y -> fst(y).Equals(fst(x)))), 0.85)))
+                    |> Seq.map(fun x -> (fst(x), System.Math.Round(snd(x), 5)))
                     |> Seq.toArray
                 if tags |> Seq.contains("-console") then
                     pageRanks
-                        |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))  
+                        |> Seq.iter(fun x -> Console.WriteLine("Page rank of "+ fst(x) + ": " + snd(x).ToString()))  
                 if tags |> Seq.contains("-file") then
                     let filePath = getFilePath(tags, argv)
                     File.AppendAllLines(filePath, pageRanks |> Seq.map(fun x -> x.ToString()))

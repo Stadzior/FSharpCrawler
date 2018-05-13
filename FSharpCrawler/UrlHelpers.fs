@@ -67,3 +67,20 @@ let getExplorableUrls (urls : seq<string>, baseUrl : string) =
                                     else
                                         x)
                                 |> Seq.distinct
+
+let findInMapByUrl(url : string, map : (string * seq<string>) []) =
+    map |> Array.find(fun x -> fst(x).Equals(url))
+
+let getLinksCount(url : string, map : (string * seq<string>) []) = 
+    let count = snd(findInMapByUrl(url, map)) |> Seq.length
+    if count > 0 then
+        count
+    else
+        map.Length
+
+let rec getPageRank(url : string, map : (string * seq<string>) [], alpha : float) =
+    let firstThingy = (1.0-alpha)/float(map.Length)
+    let minorPageRanksTuples = snd(findInMapByUrl(url, map)) |> Seq.map(fun x -> (getPageRank(x, map, alpha), float(getLinksCount(x, map)))) |> Seq.toArray
+    let sumOfPageRanks = (minorPageRanksTuples |> Array.sumBy(fun x -> fst(x)/snd(x)))
+    let secondThingy = alpha * sumOfPageRanks
+    firstThingy + secondThingy
