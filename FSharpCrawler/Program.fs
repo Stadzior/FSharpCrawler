@@ -116,22 +116,26 @@ let main argv =
                     let filePath = getFilePath(tags, argv)
                     File.AppendAllLines(filePath, cosineSimilarities |> Seq.map(fun x -> x.ToString()))
             
-        if tags |> Seq.contains("-pr") then
-            let pageRanks =
-                reachableBodies 
-                    |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
-                                                |> Seq.toArray)
-                |> Seq.toArray
-            if tags |> Seq.contains("-console") then
-                pageRanks
-                    |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))  
-            if tags |> Seq.contains("-file") then
-                let filePath = getFilePath(tags, argv)
-                File.AppendAllLines(filePath, pageRanks |> Seq.map(fun x -> x.ToString()))
+        if tags |> Seq.contains("-pr") || tags |> Seq.contains("-graph") then
+            let netMaps = 
+                reachableBodies
+                    |> Array.map(fun x -> (fst(x), getNetMap(x, depth)))
+            if tags |> Seq.contains("-pr") then
+                let pageRanks =
+                    reachableBodies 
+                        |> Seq.map(fun x -> x, getLinksFromNodeWithDepth(tags |> Seq.contains("-inclext"), true, x, getNormalizedBaseUrl(fst(x)), depth)
+                                                    |> Seq.toArray)
+                    |> Seq.toArray
+                if tags |> Seq.contains("-console") then
+                    pageRanks
+                        |> Seq.iter(fun x -> Console.WriteLine(x.ToString()))  
+                if tags |> Seq.contains("-file") then
+                    let filePath = getFilePath(tags, argv)
+                    File.AppendAllLines(filePath, pageRanks |> Seq.map(fun x -> x.ToString()))
 
-        if tags |> Seq.contains("-graph") then
-            reachableBodies
-                |> Array.iter(fun x -> drawSiteMap(getNetMap(x, depth), 2000, 2000, 100).Save(Path.Combine(__SOURCE_DIRECTORY__, "graph_" + fst(x).Replace("/","").Replace(":","") + ".jpeg"), System.Drawing.Imaging.ImageFormat.Png))
+            if tags |> Seq.contains("-graph") then
+                netMaps
+                    |> Array.iter(fun x -> drawNetMap(snd(x), 2000, 2000, 100).Save(Path.Combine(__SOURCE_DIRECTORY__, "graph_" + fst(x).Replace("/","").Replace(":","") + ".jpeg"), System.Drawing.Imaging.ImageFormat.Png))
 
         stopWatch.Stop()
         if tags |> Seq.contains("-console") then

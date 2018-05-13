@@ -154,7 +154,7 @@ let rec getNetMap(startingPoint : string * HtmlNode, depth : int) =
 
 
 
-let drawSiteMap(map : (string * seq<string>)[], sizeX : int , sizeY : int, pointSize : int) = 
+let drawNetMap(map : (string * seq<string>)[], sizeX : int , sizeY : int, pointSize : int) = 
     let rnd = System.Random()
     let image = new Bitmap(sizeX, sizeY)
     let graphics = System.Drawing.Graphics.FromImage(image)
