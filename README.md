@@ -27,3 +27,6 @@ c) Return records sorted by page rank
 
 ## #5 ##
 Sentiment analisys on StackExchange Data dump.
+
+## #6 ##
+Autotagger 
