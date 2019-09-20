@@ -52,6 +52,9 @@ let transformRelativeToFullUrl (inputUrl : string, baseUrl : string) =
 let getNormalizedBaseUrl (inputUrl : string) =
     normalizeUrl(Regex.Match(inputUrl, softBaseHostUrlPattern).Value)
 
+
+let urljoin (baseUrl : string, relativeUrl : string) = Uri(Uri(baseUrl), relativeUrl).ToString()
+    
 let getExplorableUrls (urls : seq<string>, baseUrl : string) = 
     urls
         |> Seq.map(fun x -> x.Replace("%20","").Replace(" ", ""))
