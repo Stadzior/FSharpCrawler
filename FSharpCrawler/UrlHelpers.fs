@@ -53,10 +53,7 @@ let getNormalizedBaseUrl (inputUrl : string) =
     normalizeUrl(Regex.Match(inputUrl, softBaseHostUrlPattern).Value)
 
 
-let urljoin (inputUrl : string, baseUrl : string) =
-    if inputUrl.StartsWith("http") then inputUrl
-    elif (inputUrl.StartsWith('/') || baseUrl.EndsWith('/')) then normalizeUrl(baseUrl + inputUrl)
-    else normalizeUrl(baseUrl + "/" + inputUrl)
+let urljoin (baseUrl : string, relativeUrl : string) = Uri(Uri(baseUrl), relativeUrl).ToString()
     
 let getExplorableUrls (urls : seq<string>, baseUrl : string) = 
     urls
